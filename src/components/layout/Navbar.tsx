@@ -14,6 +14,7 @@ export function Navbar() {
   const navLinks = [
     { href: '/categories', label: 'Categories' },
     { href: '/products', label: 'Products' },
+    { href: '/ebooks', label: 'Ebooks' },
   ];
 
   return (
@@ -68,6 +69,9 @@ export function Navbar() {
               <Link to="/orders">
                 <Button variant="ghost" size="sm">Orders</Button>
               </Link>
+              <Link to="/transfers">
+                <Button variant="ghost" size="sm">Transfers</Button>
+              </Link>
               <Button variant="outline" size="sm" onClick={signOut}>
                 Sign Out
               </Button>
@@ -118,6 +122,20 @@ export function Navbar() {
                       className="text-lg font-medium py-2"
                     >
                       My Orders
+                    </Link>
+                    <Link 
+                      to="/transfers"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-lg font-medium py-2"
+                    >
+                      Money Transfers
+                    </Link>
+                    <Link 
+                      to="/my-ebooks"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-lg font-medium py-2"
+                    >
+                      My Ebooks
                     </Link>
                     <Button variant="outline" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
                       Sign Out

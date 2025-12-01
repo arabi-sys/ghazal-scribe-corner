@@ -14,6 +14,11 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Admin from "./pages/Admin";
+import MoneyTransfer from "./pages/MoneyTransfer";
+import Transfers from "./pages/Transfers";
+import Ebooks from "./pages/Ebooks";
+import MyEbooks from "./pages/MyEbooks";
+import ReadEbook from "./pages/ReadEbook";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +41,11 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/transfer" element={<MoneyTransfer />} />
+              <Route path="/transfers" element={<Transfers />} />
+              <Route path="/ebooks" element={<Ebooks />} />
+              <Route path="/my-ebooks" element={<MyEbooks />} />
+              <Route path="/read/:id" element={<ReadEbook />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </CartProvider>
