@@ -7,12 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category, Order, Profile, Transaction, MoneyTransfer } from '@/lib/types';
-import { Loader2, Package, Users, ShoppingCart, DollarSign, Send, LogOut } from 'lucide-react';
+import { Loader2, Package, Users, ShoppingCart, DollarSign, Send, LogOut, FolderOpen } from 'lucide-react';
 import { ProductsTab } from '@/components/admin/ProductsTab';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { OrdersTab } from '@/components/admin/OrdersTab';
 import { TransactionsTab } from '@/components/admin/TransactionsTab';
 import { TransfersTab } from '@/components/admin/TransfersTab';
+import { CategoriesTab } from '@/components/admin/CategoriesTab';
 import { toast } from 'sonner';
 
 export default function Admin() {
@@ -83,7 +84,7 @@ export default function Admin() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
           <Card>
             <CardContent className="p-6 flex items-center gap-4">
               <Package className="h-10 w-10 text-primary" />
@@ -129,11 +130,21 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-6 flex items-center gap-4">
+              <FolderOpen className="h-10 w-10 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Categories</p>
+                <p className="text-2xl font-bold">{categories.length}</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="products">
           <TabsList className="mb-6 flex-wrap h-auto gap-2">
             <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
@@ -142,6 +153,10 @@ export default function Admin() {
 
           <TabsContent value="products">
             <ProductsTab products={products} categories={categories} onRefresh={fetchData} />
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <CategoriesTab categories={categories} onRefresh={fetchData} />
           </TabsContent>
 
           <TabsContent value="orders">
