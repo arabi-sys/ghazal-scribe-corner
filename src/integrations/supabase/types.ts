@@ -73,6 +73,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ebooks: {
+        Row: {
+          author: string
+          content_url: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          genre: string | null
+          id: string
+          is_free: boolean
+          isbn: string | null
+          pages: number | null
+          price: number
+          title: string
+        }
+        Insert: {
+          author: string
+          content_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_free?: boolean
+          isbn?: string | null
+          pages?: number | null
+          price?: number
+          title: string
+        }
+        Update: {
+          author?: string
+          content_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_free?: boolean
+          isbn?: string | null
+          pages?: number | null
+          price?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      money_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          receiver_full_name: string
+          sender_full_name: string
+          sender_id_number: string
+          sender_id_picture_url: string | null
+          sender_phone: string
+          status: string
+          transfer_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          receiver_full_name: string
+          sender_full_name: string
+          sender_id_number: string
+          sender_id_picture_url?: string | null
+          sender_phone: string
+          status?: string
+          transfer_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          receiver_full_name?: string
+          sender_full_name?: string
+          sender_id_number?: string
+          sender_id_picture_url?: string | null
+          sender_phone?: string
+          status?: string
+          transfer_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -265,6 +355,35 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_ebooks: {
+        Row: {
+          ebook_id: string
+          id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          ebook_id: string
+          id?: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          ebook_id?: string
+          id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ebooks_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
             referencedColumns: ["id"]
           },
         ]
