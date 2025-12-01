@@ -6,14 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Product, Category, Order, Profile, Transaction, MoneyTransfer } from '@/lib/types';
-import { Loader2, Package, Users, ShoppingCart, DollarSign, Send, LogOut, FolderOpen } from 'lucide-react';
+import { Product, Category, Order, Profile, Transaction, MoneyTransfer, Ebook } from '@/lib/types';
+import { Loader2, Package, Users, ShoppingCart, DollarSign, Send, LogOut, FolderOpen, BookOpen } from 'lucide-react';
 import { ProductsTab } from '@/components/admin/ProductsTab';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { OrdersTab } from '@/components/admin/OrdersTab';
 import { TransactionsTab } from '@/components/admin/TransactionsTab';
 import { TransfersTab } from '@/components/admin/TransfersTab';
 import { CategoriesTab } from '@/components/admin/CategoriesTab';
+import { EbooksTab } from '@/components/admin/EbooksTab';
 import { toast } from 'sonner';
 
 export default function Admin() {
@@ -25,6 +26,7 @@ export default function Admin() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transfers, setTransfers] = useState<MoneyTransfer[]>([]);
+  const [ebooks, setEbooks] = useState<Ebook[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,13 +38,14 @@ export default function Admin() {
   }, [user, isAdmin, authLoading, navigate]);
 
   const fetchData = async () => {
-    const [productsRes, categoriesRes, ordersRes, usersRes, transactionsRes, transfersRes] = await Promise.all([
+    const [productsRes, categoriesRes, ordersRes, usersRes, transactionsRes, transfersRes, ebooksRes] = await Promise.all([
       supabase.from('products').select('*, categories(*)').order('name'),
       supabase.from('categories').select('*').order('name'),
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
       supabase.from('profiles').select('*'),
       supabase.from('transactions').select('*').order('created_at', { ascending: false }),
-      supabase.from('money_transfers').select('*').order('created_at', { ascending: false })
+      supabase.from('money_transfers').select('*').order('created_at', { ascending: false }),
+      supabase.from('ebooks').select('*').order('title')
     ]);
     if (productsRes.data) setProducts(productsRes.data as Product[]);
     if (categoriesRes.data) setCategories(categoriesRes.data as Category[]);
@@ -50,6 +53,7 @@ export default function Admin() {
     if (usersRes.data) setUsers(usersRes.data as Profile[]);
     if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
     if (transfersRes.data) setTransfers(transfersRes.data as MoneyTransfer[]);
+    if (ebooksRes.data) setEbooks(ebooksRes.data as Ebook[]);
     setLoading(false);
   };
 
@@ -139,12 +143,22 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-6 flex items-center gap-4">
+              <BookOpen className="h-10 w-10 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Ebooks</p>
+                <p className="text-2xl font-bold">{ebooks.length}</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="products">
           <TabsList className="mb-6 flex-wrap h-auto gap-2">
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="ebooks">Ebooks</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
@@ -157,6 +171,10 @@ export default function Admin() {
 
           <TabsContent value="categories">
             <CategoriesTab categories={categories} onRefresh={fetchData} />
+          </TabsContent>
+
+          <TabsContent value="ebooks">
+            <EbooksTab ebooks={ebooks} onRefresh={fetchData} />
           </TabsContent>
 
           <TabsContent value="orders">
