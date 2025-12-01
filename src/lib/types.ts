@@ -68,6 +68,44 @@ export interface UserRole {
   role: 'admin' | 'user';
 }
 
+export interface Ebook {
+  id: string;
+  title: string;
+  author: string;
+  description: string | null;
+  cover_url: string | null;
+  content_url: string | null;
+  price: number;
+  is_free: boolean;
+  genre: string | null;
+  pages: number | null;
+  isbn: string | null;
+  created_at: string;
+}
+
+export interface UserEbook {
+  id: string;
+  user_id: string;
+  ebook_id: string;
+  purchased_at: string;
+  ebooks?: Ebook;
+}
+
+export interface MoneyTransfer {
+  id: string;
+  user_id: string;
+  sender_full_name: string;
+  sender_id_number: string;
+  sender_id_picture_url: string | null;
+  sender_phone: string;
+  amount: number;
+  receiver_full_name: string;
+  transfer_type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Transaction {
   id: string;
   order_id: string;
