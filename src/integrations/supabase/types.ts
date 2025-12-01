@@ -118,6 +118,95 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_books: {
+        Row: {
+          author: string
+          condition: string
+          created_at: string
+          depositor_id: string
+          description: string | null
+          id: string
+          image_url: string | null
+          isbn: string | null
+          price: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          condition: string
+          created_at?: string
+          depositor_id: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          isbn?: string | null
+          price?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          condition?: string
+          created_at?: string
+          depositor_id?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          isbn?: string | null
+          price?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exchange_transactions: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          loan_due_date: string | null
+          returned_at: string | null
+          status: string
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          loan_due_date?: string | null
+          returned_at?: string | null
+          status?: string
+          transaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          loan_due_date?: string | null
+          returned_at?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_transactions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "exchange_books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       money_transfers: {
         Row: {
           amount: number
