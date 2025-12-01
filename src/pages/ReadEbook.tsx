@@ -5,7 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ArrowLeft, Book } from 'lucide-react';
+import { Loader2, ArrowLeft, Book, Download } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Ebook {
   id: string;
@@ -25,6 +35,7 @@ export default function ReadEbook() {
   const [ebook, setEbook] = useState<Ebook | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -60,6 +71,19 @@ export default function ReadEbook() {
 
     if (ebookData) setEbook(ebookData);
     setLoading(false);
+  };
+
+  const handleDownloadEbook = () => {
+    if (ebook?.content_url) {
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = ebook.content_url;
+      link.download = `${ebook.title}.epub`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setShowDownloadDialog(false);
+    }
   };
 
   if (loading) {
@@ -156,29 +180,52 @@ export default function ReadEbook() {
             {/* Reading Content Area */}
             <Card className="mt-6">
               <CardContent className="p-6">
-                <h2 className="font-semibold mb-4">Start Reading</h2>
+                <h2 className="font-semibold mb-4">Get Your Ebook</h2>
                 <div className="prose prose-sm max-w-none text-muted-foreground">
                   <p>
                     Thank you for purchasing "{ebook.title}" by {ebook.author}.
                   </p>
                   <p className="mt-4">
-                    This is a preview of your ebook reader. In a full implementation, 
-                    the complete book content would be displayed here with features like:
-                  </p>
-                  <ul className="mt-2 space-y-1">
-                    <li>• Page navigation</li>
-                    <li>• Bookmarking</li>
-                    <li>• Font size adjustment</li>
-                    <li>• Progress tracking</li>
-                    <li>• Night mode</li>
-                  </ul>
-                  <p className="mt-4 text-sm">
-                    The ebook content would be securely streamed from our servers 
-                    to ensure copyright protection.
+                    Click the button below to download your ebook in EPUB format. 
+                    You'll need an EPUB reader app to open and read the file.
                   </p>
                 </div>
+                <Button 
+                  className="mt-6"
+                  onClick={() => setShowDownloadDialog(true)}
+                  disabled={!ebook.content_url}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Ebook
+                </Button>
               </CardContent>
             </Card>
+
+            <AlertDialog open={showDownloadDialog} onOpenChange={setShowDownloadDialog}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Download EPUB File</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You need an EPUB reader app to read this ebook. Popular options include:
+                    <ul className="mt-2 list-disc list-inside space-y-1">
+                      <li>Apple Books (iOS/Mac)</li>
+                      <li>Google Play Books (Android/iOS)</li>
+                      <li>Adobe Digital Editions (Desktop)</li>
+                      <li>Calibre (Desktop)</li>
+                    </ul>
+                    <p className="mt-3">
+                      Do you wish to continue and download the EPUB file?
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDownloadEbook}>
+                    Download
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
