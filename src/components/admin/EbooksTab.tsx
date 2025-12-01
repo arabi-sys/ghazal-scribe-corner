@@ -14,6 +14,7 @@ import { Ebook } from '@/lib/types';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
+import { FileUpload } from './FileUpload';
 
 interface EbooksTabProps {
   ebooks: Ebook[];
@@ -24,7 +25,7 @@ export function EbooksTab({ ebooks, onRefresh }: EbooksTabProps) {
   const [editingEbook, setEditingEbook] = useState<Ebook | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [ebookForm, setEbookForm] = useState({
-    title: '', author: '', description: '', price: '', genre: '', pages: '', isbn: '', cover_url: '', is_free: false
+    title: '', author: '', description: '', price: '', genre: '', pages: '', isbn: '', cover_url: '', content_url: '', is_free: false
   });
 
   const handleSaveEbook = async () => {
@@ -37,6 +38,7 @@ export function EbooksTab({ ebooks, onRefresh }: EbooksTabProps) {
       pages: parseInt(ebookForm.pages) || null,
       isbn: ebookForm.isbn || null,
       cover_url: ebookForm.cover_url || null,
+      content_url: ebookForm.content_url || null,
       is_free: ebookForm.is_free
     };
 
@@ -74,6 +76,7 @@ export function EbooksTab({ ebooks, onRefresh }: EbooksTabProps) {
       pages: ebook.pages?.toString() || '',
       isbn: ebook.isbn || '',
       cover_url: ebook.cover_url || '',
+      content_url: ebook.content_url || '',
       is_free: ebook.is_free
     });
     setDialogOpen(true);
@@ -81,7 +84,7 @@ export function EbooksTab({ ebooks, onRefresh }: EbooksTabProps) {
 
   const resetForm = () => {
     setEditingEbook(null);
-    setEbookForm({ title: '', author: '', description: '', price: '', genre: '', pages: '', isbn: '', cover_url: '', is_free: false });
+    setEbookForm({ title: '', author: '', description: '', price: '', genre: '', pages: '', isbn: '', cover_url: '', content_url: '', is_free: false });
   };
 
   return (
@@ -126,6 +129,11 @@ export function EbooksTab({ ebooks, onRefresh }: EbooksTabProps) {
               <ImageUpload 
                 value={ebookForm.cover_url} 
                 onChange={(url) => setEbookForm({...ebookForm, cover_url: url})} 
+              />
+              <FileUpload 
+                value={ebookForm.content_url} 
+                onChange={(url) => setEbookForm({...ebookForm, content_url: url})}
+                label="Ebook File (PDF, EPUB, MOBI)"
               />
               <div className="flex items-center justify-between">
                 <Label>Free Ebook</Label>
