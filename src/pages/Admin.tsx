@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product, Category, Order, Profile, Transaction, MoneyTransfer } from '@/lib/types';
 import { toast } from 'sonner';
 import { Loader2, Plus, Edit, Package, Users, ShoppingCart, DollarSign, Send, Check, X } from 'lucide-react';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 export default function Admin() {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -158,7 +159,7 @@ export default function Admin() {
                     <div><Label>Name</Label><Input value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} /></div>
                     <div><Label>Price</Label><Input type="number" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} /></div>
                     <div><Label>Stock</Label><Input type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} /></div>
-                    <div><Label>Image URL</Label><Input value={productForm.image_url} onChange={e => setProductForm({...productForm, image_url: e.target.value})} placeholder="https://..." /></div>
+                    <ImageUpload value={productForm.image_url} onChange={(url) => setProductForm({...productForm, image_url: url})} />
                     <div><Label>Category</Label><Select value={productForm.category_id} onValueChange={v => setProductForm({...productForm, category_id: v})}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                     <div><Label>Description</Label><Textarea value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} /></div>
                     <Button onClick={handleSaveProduct} className="w-full">{editingProduct ? 'Update' : 'Create'}</Button>
