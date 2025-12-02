@@ -15,6 +15,7 @@ export function Navbar() {
     { href: '/categories', label: 'Categories' },
     { href: '/products', label: 'Products' },
     { href: '/ebooks', label: 'Ebooks' },
+    { href: '/book-exchange', label: 'Book Exchange' },
   ];
 
   return (
