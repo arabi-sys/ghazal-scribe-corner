@@ -183,14 +183,14 @@ export default function BookExchange() {
               Deposit Book
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Deposit a Book</DialogTitle>
               <DialogDescription>
                 Submit your used book for approval. Once approved, others can borrow or purchase it.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 overflow-y-auto">
               <div className="grid gap-2">
                 <Label htmlFor="title">Title *</Label>
                 <Input
