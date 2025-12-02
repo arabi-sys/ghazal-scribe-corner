@@ -21,7 +21,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
           <BookOpen className="h-6 w-6 text-primary" />
           <span className="font-serif text-xl font-semibold text-foreground">Ghazal Library</span>
         </Link>
