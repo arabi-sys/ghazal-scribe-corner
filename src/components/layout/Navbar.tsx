@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, User, Menu, X, BookOpen, Search } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, BookOpen, Search, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -53,6 +53,14 @@ export function Navbar() {
               <Search className="h-5 w-5" />
             </Button>
           </Link>
+
+          {user && (
+            <Link to="/wishlist">
+              <Button variant="ghost" size="icon">
+                <Heart className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
 
           <Link to="/cart" className="relative">
             <Button variant="ghost" size="icon">

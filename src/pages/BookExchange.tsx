@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -168,7 +169,18 @@ export default function BookExchange() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      {/* Header with Logo */}
+      <header className="border-b border-border bg-card/95 backdrop-blur">
+        <div className="container flex h-16 items-center">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <BookOpen className="h-6 w-6 text-primary" />
+            <span className="font-serif text-xl font-semibold text-foreground">Ghazal Library</span>
+          </Link>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Book Exchange</h1>
@@ -445,6 +457,7 @@ export default function BookExchange() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

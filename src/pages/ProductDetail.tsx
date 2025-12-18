@@ -3,16 +3,24 @@ import { useParams, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/lib/types';
+import { Product, ProductVariant } from '@/lib/types';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, Minus, Plus, Package, ArrowLeft, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProductReviews } from '@/components/products/ProductReviews';
+import { ShoppingCart, Minus, Plus, Package, ArrowLeft, Loader2, Heart } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -25,18 +33,78 @@ export default function ProductDetail() {
         .eq('slug', slug)
         .maybeSingle();
 
-      if (data) setProduct(data as Product);
+      if (data) {
+        setProduct(data as Product);
+        
+        // Fetch variants
+        const { data: variantsData } = await supabase
+          .from('product_variants')
+          .select('*')
+          .eq('product_id', data.id);
+        
+        if (variantsData && variantsData.length > 0) {
+          setVariants(variantsData as ProductVariant[]);
+        }
+
+        // Check wishlist status
+        if (user) {
+          const { data: wishlistData } = await supabase
+            .from('wishlist')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('product_id', data.id)
+            .maybeSingle();
+          setIsInWishlist(!!wishlistData);
+        }
+      }
       setLoading(false);
     }
 
     fetchProduct();
-  }, [slug]);
+  }, [slug, user]);
 
   const handleAddToCart = () => {
     if (product) {
       addToCart(product.id, quantity);
     }
   };
+
+  const handleToggleWishlist = async () => {
+    if (!user) {
+      toast.error('Please sign in to add to wishlist');
+      return;
+    }
+    if (!product) return;
+
+    if (isInWishlist) {
+      const { error } = await supabase
+        .from('wishlist')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('product_id', product.id);
+      
+      if (!error) {
+        setIsInWishlist(false);
+        toast.success('Removed from wishlist');
+      }
+    } else {
+      const { error } = await supabase
+        .from('wishlist')
+        .insert({ user_id: user.id, product_id: product.id });
+      
+      if (!error) {
+        setIsInWishlist(true);
+        toast.success('Added to wishlist');
+      }
+    }
+  };
+
+  // Get unique sizes and colors from variants
+  const sizes = [...new Set(variants.filter(v => v.size).map(v => v.size))];
+  const colors = [...new Set(variants.filter(v => v.color).map(v => v.color))];
+
+  const currentPrice = product ? product.price + (selectedVariant?.price_adjustment || 0) : 0;
+  const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0;
 
   if (loading) {
     return (
@@ -61,7 +129,7 @@ export default function ProductDetail() {
     );
   }
 
-  const isOutOfStock = product.stock <= 0;
+  const isOutOfStock = currentStock <= 0;
 
   return (
     <Layout>
@@ -97,22 +165,80 @@ export default function ProductDetail() {
               </Link>
             )}
 
-            <h1 className="font-serif text-4xl font-bold text-foreground">{product.name}</h1>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="font-serif text-4xl font-bold text-foreground">{product.name}</h1>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleToggleWishlist}
+                className={isInWishlist ? 'text-red-500' : ''}
+              >
+                <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current' : ''}`} />
+              </Button>
+            </div>
 
             <div className="mt-4 flex items-center gap-4">
               <span className="text-3xl font-bold text-foreground">
-                ${product.price.toFixed(2)}
+                ${currentPrice.toFixed(2)}
               </span>
               {isOutOfStock ? (
                 <Badge variant="destructive">Out of Stock</Badge>
               ) : (
-                <Badge variant="outline">{product.stock} in stock</Badge>
+                <Badge variant="outline">{currentStock} in stock</Badge>
               )}
             </div>
 
             <p className="mt-6 text-muted-foreground leading-relaxed">
               {product.description || 'No description available for this product.'}
             </p>
+
+            {/* Variants Selection */}
+            {variants.length > 0 && (
+              <div className="mt-6 space-y-4">
+                {sizes.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Size</label>
+                    <Select onValueChange={(size) => {
+                      const variant = variants.find(v => v.size === size && (!selectedVariant?.color || v.color === selectedVariant.color));
+                      setSelectedVariant(variant || null);
+                    }}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Select size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sizes.map((size) => (
+                          <SelectItem key={size} value={size!}>{size}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {colors.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Color</label>
+                    <Select onValueChange={(color) => {
+                      const variant = variants.find(v => v.color === color && (!selectedVariant?.size || v.size === selectedVariant.size));
+                      setSelectedVariant(variant || null);
+                    }}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Select color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {colors.map((color) => (
+                          <SelectItem key={color} value={color!}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color! }} />
+                              {color}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Quantity & Add to Cart */}
             {!isOutOfStock && (
@@ -132,8 +258,8 @@ export default function ProductDetail() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                      disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
+                      disabled={quantity >= currentStock}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -142,7 +268,7 @@ export default function ProductDetail() {
 
                 <Button size="lg" className="w-full md:w-auto" onClick={handleAddToCart}>
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  Add to Cart - ${(product.price * quantity).toFixed(2)}
+                  Add to Cart - ${(currentPrice * quantity).toFixed(2)}
                 </Button>
               </div>
             )}
@@ -155,6 +281,11 @@ export default function ProductDetail() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-16">
+          <ProductReviews productId={product.id} />
         </div>
       </div>
     </Layout>

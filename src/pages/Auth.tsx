@@ -6,18 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, X } from 'lucide-react';
 import { z } from 'zod';
-import { Check, X } from 'lucide-react';
 
 const signInSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
-// Strong password: 8+ chars, uppercase, lowercase, number, special char
 const passwordSchema = z.string()
   .min(8, 'Password must be at least 8 characters')
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
@@ -29,6 +28,9 @@ const signUpSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: passwordSchema,
   fullName: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  dateOfBirth: z.string().optional(),
 });
 
 const PasswordStrengthIndicator = ({ password }: { password: string }) => {
@@ -70,7 +72,7 @@ const SignUpFormContent = ({ onSubmit, loading, errors }: SignUpFormProps) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="signup-name">Full Name</Label>
+        <Label htmlFor="signup-name">Full Name *</Label>
         <Input 
           id="signup-name" 
           name="fullName" 
@@ -80,7 +82,7 @@ const SignUpFormContent = ({ onSubmit, loading, errors }: SignUpFormProps) => {
         {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
+        <Label htmlFor="signup-email">Email *</Label>
         <Input 
           id="signup-email" 
           name="email" 
@@ -91,7 +93,32 @@ const SignUpFormContent = ({ onSubmit, loading, errors }: SignUpFormProps) => {
         {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
+        <Label htmlFor="signup-phone">Phone Number</Label>
+        <Input 
+          id="signup-phone" 
+          name="phone" 
+          type="tel" 
+          placeholder="+961 XX XXX XXX" 
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signup-address">Address</Label>
+        <Input 
+          id="signup-address" 
+          name="address" 
+          placeholder="Your address" 
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signup-dob">Date of Birth</Label>
+        <Input 
+          id="signup-dob" 
+          name="dateOfBirth" 
+          type="date" 
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signup-password">Password *</Label>
         <Input 
           id="signup-password" 
           name="password" 
@@ -114,9 +141,12 @@ const SignUpFormContent = ({ onSubmit, loading, errors }: SignUpFormProps) => {
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signIn, signUp, loading: authLoading } = useAuth();
+  const { user, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -160,8 +190,11 @@ export default function Auth() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const fullName = formData.get('fullName') as string;
+    const phone = formData.get('phone') as string;
+    const address = formData.get('address') as string;
+    const dateOfBirth = formData.get('dateOfBirth') as string;
 
-    const result = signUpSchema.safeParse({ email, password, fullName });
+    const result = signUpSchema.safeParse({ email, password, fullName, phone, address, dateOfBirth });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach(err => {
@@ -172,7 +205,7 @@ export default function Auth() {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp({ email, password, fullName, phone, address, dateOfBirth });
     setLoading(false);
 
     if (error) {
@@ -184,6 +217,25 @@ export default function Auth() {
     } else {
       toast.success('Account created successfully!');
       navigate('/');
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail) {
+      toast.error('Please enter your email');
+      return;
+    }
+
+    setResetLoading(true);
+    const { error } = await resetPassword(resetEmail);
+    setResetLoading(false);
+
+    if (error) {
+      toast.error(error.message || 'Failed to send reset email');
+    } else {
+      toast.success('Password reset email sent! Check your inbox.');
+      setForgotPasswordOpen(false);
+      setResetEmail('');
     }
   };
 
@@ -240,6 +292,14 @@ export default function Auth() {
                     {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Sign In
                   </Button>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="w-full" 
+                    onClick={() => setForgotPasswordOpen(true)}
+                  >
+                    Forgot Password?
+                  </Button>
                 </form>
               </TabsContent>
 
@@ -254,6 +314,36 @@ export default function Auth() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input 
+                id="reset-email" 
+                type="email" 
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForgotPasswordOpen(false)}>Cancel</Button>
+            <Button onClick={handleResetPassword} disabled={resetLoading}>
+              {resetLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Send Reset Link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
