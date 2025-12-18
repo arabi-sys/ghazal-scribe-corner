@@ -73,15 +73,36 @@ export default function ReadEbook() {
     setLoading(false);
   };
 
-  const handleDownloadEbook = () => {
+  const handleDownloadEbook = async () => {
     if (ebook?.content_url) {
-      // Create a temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = ebook.content_url;
-      link.download = `${ebook.title}.epub`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        // Extract file path from the URL
+        const urlParts = ebook.content_url.split('/ebook-files/');
+        const filePath = urlParts[urlParts.length - 1];
+        
+        // Create a signed URL for private bucket access
+        const { data, error } = await supabase.storage
+          .from('ebook-files')
+          .createSignedUrl(filePath, 60); // 60 seconds expiry
+        
+        if (error) {
+          console.error('Error creating signed URL:', error);
+          // Fallback to direct URL if signed URL fails
+          window.open(ebook.content_url, '_blank');
+        } else if (data?.signedUrl) {
+          // Create a temporary link and trigger download
+          const link = document.createElement('a');
+          link.href = data.signedUrl;
+          link.download = `${ebook.title}.epub`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } catch (err) {
+        console.error('Download error:', err);
+        // Fallback to direct URL
+        window.open(ebook.content_url, '_blank');
+      }
       setShowDownloadDialog(false);
     }
   };
