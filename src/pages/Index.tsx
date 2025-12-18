@@ -6,7 +6,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { CategoryCard } from '@/components/products/CategoryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category } from '@/lib/types';
-import { ArrowRight, BookOpen, Pencil, Package } from 'lucide-react';
+import { ArrowRight, BookOpen, Pencil, Package, Send } from 'lucide-react';
 import heroImage from '@/assets/hero-library.jpg';
 
 export default function Index() {
@@ -58,9 +58,10 @@ export default function Index() {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/categories">
-                <Button size="lg" variant="outline">
-                  View Categories
+              <Link to="/transfer">
+                <Button size="lg" variant="outline" className="gap-2">
+                  <Send className="h-4 w-4" />
+                  Money Transfer
                 </Button>
               </Link>
             </div>
@@ -96,12 +97,12 @@ export default function Index() {
             </div>
             <div className="flex items-start gap-4">
               <div className="p-3 bg-primary/10 rounded-lg">
-                <Package className="h-6 w-6 text-primary" />
+                <Send className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Fast Delivery</h3>
+                <h3 className="font-semibold text-foreground">Money Transfers</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Quick shipping to your doorstep
+                  Send money locally within Lebanon
                 </p>
               </div>
             </div>
