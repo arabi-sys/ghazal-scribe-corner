@@ -185,19 +185,35 @@ export default function ReadEbook() {
                   <p>
                     Thank you for purchasing "{ebook.title}" by {ebook.author}.
                   </p>
-                  <p className="mt-4">
-                    Click the button below to download your ebook in EPUB format. 
-                    You'll need an EPUB reader app to open and read the file.
-                  </p>
+                  {ebook.content_url ? (
+                    <p className="mt-4">
+                      Click the button below to download your ebook in EPUB format. 
+                      You'll need an EPUB reader app to open and read the file.
+                    </p>
+                  ) : (
+                    <p className="mt-4 text-amber-600">
+                      The ebook file is not yet available. Please check back later or contact support.
+                    </p>
+                  )}
                 </div>
-                <Button 
-                  className="mt-6"
-                  onClick={() => setShowDownloadDialog(true)}
-                  disabled={!ebook.content_url}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Ebook
-                </Button>
+                {ebook.content_url ? (
+                  <Button 
+                    className="mt-6"
+                    onClick={() => setShowDownloadDialog(true)}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Ebook
+                  </Button>
+                ) : (
+                  <Button 
+                    className="mt-6"
+                    variant="secondary"
+                    disabled
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    File Not Available
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

@@ -172,10 +172,15 @@ export default function BookExchange() {
     <div className="min-h-screen bg-background">
       {/* Header with Logo */}
       <header className="border-b border-border bg-card/95 backdrop-blur">
-        <div className="container flex h-16 items-center">
+        <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <BookOpen className="h-6 w-6 text-primary" />
             <span className="font-serif text-xl font-semibold text-foreground">Ghazal Library</span>
+          </Link>
+          <Link to="/">
+            <Button variant="outline" size="sm">
+              ← Back to Home
+            </Button>
           </Link>
         </div>
       </header>

@@ -67,13 +67,12 @@ export default function Checkout() {
 
       if (itemsError) throw itemsError;
 
-      // Update product stock
+      // Update product stock using the security definer function
       for (const item of items) {
-        const newStock = (item.products?.stock || 0) - item.quantity;
-        await supabase
-          .from('products')
-          .update({ stock: Math.max(0, newStock) })
-          .eq('id', item.product_id);
+        await supabase.rpc('decrement_product_stock', {
+          product_id: item.product_id,
+          quantity: item.quantity
+        });
       }
 
       // Create transaction
