@@ -13,6 +13,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { createNotification } from '@/hooks/useNotifications';
 
 interface ExchangeBook {
   id: string;
@@ -47,15 +48,24 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
   const pendingDeposits = books.filter((b) => b.status === 'pending_approval');
   const pendingTransactions = transactions.filter((t) => t.status === 'pending_approval');
 
-  const handleApproveDeposit = async (bookId: string) => {
-    setProcessing(bookId);
+  const handleApproveDeposit = async (book: ExchangeBook) => {
+    setProcessing(book.id);
     try {
       const { error } = await supabase
         .from('exchange_books')
         .update({ status: 'available' })
-        .eq('id', bookId);
+        .eq('id', book.id);
 
       if (error) throw error;
+
+      // Notify the depositor
+      await createNotification(
+        book.depositor_id,
+        'deposit_approved',
+        'Book Deposit Approved',
+        `Your book "${book.title}" has been approved and is now available for exchange.`,
+        book.id
+      );
 
       toast({ title: 'Book deposit approved!' });
       onRefresh();
@@ -67,15 +77,24 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
     }
   };
 
-  const handleRejectDeposit = async (bookId: string) => {
-    setProcessing(bookId);
+  const handleRejectDeposit = async (book: ExchangeBook) => {
+    setProcessing(book.id);
     try {
       const { error } = await supabase
         .from('exchange_books')
         .update({ status: 'rejected' })
-        .eq('id', bookId);
+        .eq('id', book.id);
 
       if (error) throw error;
+
+      // Notify the depositor
+      await createNotification(
+        book.depositor_id,
+        'deposit_rejected',
+        'Book Deposit Rejected',
+        `Your book "${book.title}" has been rejected.`,
+        book.id
+      );
 
       toast({ title: 'Book deposit rejected' });
       onRefresh();
@@ -87,17 +106,16 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
     }
   };
 
+
   const handleApproveTransaction = async (
-    transactionId: string,
-    transactionType: string,
-    bookId: string
+    transaction: ExchangeTransaction
   ) => {
-    setProcessing(transactionId);
+    setProcessing(transaction.id);
     try {
       const updates: any = { status: 'active' };
 
       // Set loan due date for borrows (2 weeks)
-      if (transactionType === 'borrow') {
+      if (transaction.transaction_type === 'borrow') {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + 14);
         updates.loan_due_date = dueDate.toISOString();
@@ -106,20 +124,30 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
       const { error: transactionError } = await supabase
         .from('exchange_transactions')
         .update(updates)
-        .eq('id', transactionId);
+        .eq('id', transaction.id);
 
       if (transactionError) throw transactionError;
 
       // Update book status
-      const newBookStatus = transactionType === 'purchase' ? 'sold' : 'on_loan';
+      const newBookStatus = transaction.transaction_type === 'purchase' ? 'sold' : 'on_loan';
       const { error: bookError } = await supabase
         .from('exchange_books')
         .update({ status: newBookStatus })
-        .eq('id', bookId);
+        .eq('id', transaction.book_id);
 
       if (bookError) throw bookError;
 
-      toast({ title: `${transactionType === 'borrow' ? 'Borrow' : 'Purchase'} approved!` });
+      // Notify the user
+      const notificationType = transaction.transaction_type === 'borrow' ? 'borrow_approved' : 'purchase_approved';
+      await createNotification(
+        transaction.user_id,
+        notificationType,
+        `${transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'} Request Approved`,
+        `Your ${transaction.transaction_type} request for "${transaction.exchange_books.title}" has been approved.`,
+        transaction.book_id
+      );
+
+      toast({ title: `${transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'} approved!` });
       onRefresh();
     } catch (error) {
       console.error('Error approving transaction:', error);
@@ -129,15 +157,25 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
     }
   };
 
-  const handleRejectTransaction = async (transactionId: string) => {
-    setProcessing(transactionId);
+  const handleRejectTransaction = async (transaction: ExchangeTransaction) => {
+    setProcessing(transaction.id);
     try {
       const { error } = await supabase
         .from('exchange_transactions')
         .update({ status: 'rejected' })
-        .eq('id', transactionId);
+        .eq('id', transaction.id);
 
       if (error) throw error;
+
+      // Notify the user
+      const notificationType = transaction.transaction_type === 'borrow' ? 'borrow_rejected' : 'purchase_rejected';
+      await createNotification(
+        transaction.user_id,
+        notificationType,
+        `${transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'} Request Rejected`,
+        `Your ${transaction.transaction_type} request for "${transaction.exchange_books.title}" has been rejected.`,
+        transaction.book_id
+      );
 
       toast({ title: 'Request rejected' });
       onRefresh();
@@ -184,7 +222,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
                         <Button
                           size="sm"
                           variant="default"
-                          onClick={() => handleApproveDeposit(book.id)}
+                          onClick={() => handleApproveDeposit(book)}
                           disabled={processing === book.id}
                         >
                           {processing === book.id ? (
@@ -199,7 +237,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleRejectDeposit(book.id)}
+                          onClick={() => handleRejectDeposit(book)}
                           disabled={processing === book.id}
                         >
                           {processing === book.id ? (
@@ -258,13 +296,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
                         <Button
                           size="sm"
                           variant="default"
-                          onClick={() =>
-                            handleApproveTransaction(
-                              transaction.id,
-                              transaction.transaction_type,
-                              transaction.book_id
-                            )
-                          }
+                          onClick={() => handleApproveTransaction(transaction)}
                           disabled={processing === transaction.id}
                         >
                           {processing === transaction.id ? (
@@ -279,7 +311,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleRejectTransaction(transaction.id)}
+                          onClick={() => handleRejectTransaction(transaction)}
                           disabled={processing === transaction.id}
                         >
                           {processing === transaction.id ? (

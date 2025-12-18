@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Package } from 'lucide-react';
+import { notifyAdmins } from '@/hooks/useNotifications';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -87,6 +88,14 @@ export default function Checkout() {
 
       // Clear cart
       await clearCart();
+
+      // Notify admins about new order
+      await notifyAdmins(
+        'new_order',
+        'New Order Placed',
+        `Order #${order.id.slice(0, 8)} - $${totalPrice.toFixed(2)}`,
+        order.id
+      );
 
       toast.success('Order placed successfully!');
       navigate('/orders');

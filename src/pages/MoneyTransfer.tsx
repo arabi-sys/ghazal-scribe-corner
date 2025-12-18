@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Upload, Send, DollarSign } from 'lucide-react';
 import { z } from 'zod';
+import { notifyAdmins } from '@/hooks/useNotifications';
 
 const transferSchema = z.object({
   senderFullName: z.string().min(2, 'Full name is required'),
@@ -104,7 +105,7 @@ export default function MoneyTransfer() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data: transfer, error } = await supabase
         .from('money_transfers')
         .insert({
           user_id: user.id,
@@ -116,9 +117,19 @@ export default function MoneyTransfer() {
           receiver_full_name: form.receiverFullName,
           transfer_type: 'local',
           status: 'pending',
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Notify admins about new transfer
+      await notifyAdmins(
+        'new_transfer',
+        'New Transfer Request',
+        `$${form.amount} from ${form.senderFullName} to ${form.receiverFullName}`,
+        transfer.id
+      );
 
       toast.success('Transfer request submitted successfully!');
       navigate('/transfers');

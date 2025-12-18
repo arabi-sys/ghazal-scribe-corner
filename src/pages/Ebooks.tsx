@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Search, Book, BookOpen } from 'lucide-react';
+import { notifyAdmins } from '@/hooks/useNotifications';
 
 interface Ebook {
   id: string;
@@ -63,6 +64,16 @@ export default function Ebooks() {
         .insert({ user_id: user.id, ebook_id: ebook.id });
 
       if (error) throw error;
+
+      // Notify admins about ebook purchase (if not free)
+      if (!ebook.is_free) {
+        await notifyAdmins(
+          'ebook_purchase',
+          'Ebook Purchased',
+          `"${ebook.title}" - $${ebook.price.toFixed(2)}`,
+          ebook.id
+        );
+      }
 
       setPurchasedIds([...purchasedIds, ebook.id]);
       toast.success(`"${ebook.title}" added to your library!`);

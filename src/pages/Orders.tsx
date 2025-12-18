@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/lib/types';
 import { Loader2, Package, ShoppingBag } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface OrderWithItems extends Order {
   order_items: OrderItem[];
@@ -16,6 +17,7 @@ interface OrderWithItems extends Order {
 export default function Orders() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { markTypesAsRead } = useNotifications();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +29,8 @@ export default function Orders() {
 
     if (user) {
       fetchOrders();
+      // Mark order notifications as read when viewing this page
+      markTypesAsRead(['order_status_update']);
     }
   }, [user, authLoading, navigate]);
 

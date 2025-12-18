@@ -2,13 +2,16 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, User, Menu, X, BookOpen, Search, Heart } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, BookOpen, Search, Heart, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationBadge } from '@/components/notifications/NotificationBadge';
 
 export function Navbar() {
   const { user, isAdmin, signOut } = useAuth();
   const { totalItems } = useCart();
+  const { unreadCount, getUnreadByTypes } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -75,11 +78,17 @@ export function Navbar() {
 
           {user ? (
             <div className="hidden md:flex items-center gap-2">
-              <Link to="/orders">
-                <Button variant="ghost" size="sm">Orders</Button>
+              <Link to="/orders" className="relative">
+                <Button variant="ghost" size="sm">
+                  Orders
+                  <NotificationBadge count={getUnreadByTypes(['order_status_update'])} className="ml-1" />
+                </Button>
               </Link>
-              <Link to="/transfers">
-                <Button variant="ghost" size="sm">Transfers</Button>
+              <Link to="/transfers" className="relative">
+                <Button variant="ghost" size="sm">
+                  Transfers
+                  <NotificationBadge count={getUnreadByTypes(['transfer_approved', 'transfer_declined'])} className="ml-1" />
+                </Button>
               </Link>
               <Button variant="outline" size="sm" onClick={signOut}>
                 Sign Out

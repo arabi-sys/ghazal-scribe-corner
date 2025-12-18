@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Send, Plus } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface Transfer {
   id: string;
@@ -20,6 +21,7 @@ interface Transfer {
 export default function Transfers() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { markTypesAsRead } = useNotifications();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +31,8 @@ export default function Transfers() {
       return;
     }
     fetchTransfers();
+    // Mark transfer notifications as read when viewing this page
+    markTypesAsRead(['transfer_approved', 'transfer_declined']);
   }, [user, navigate]);
 
   const fetchTransfers = async () => {

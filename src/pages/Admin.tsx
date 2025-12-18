@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category, Order, Profile, Transaction, MoneyTransfer, Ebook, Discount } from '@/lib/types';
 import { Loader2, Package, Users, ShoppingCart, DollarSign, Send, LogOut, FolderOpen, BookOpen, BookCopy, Percent, BarChart } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationBadge } from '@/components/notifications/NotificationBadge';
 import { ProductsTab } from '@/components/admin/ProductsTab';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { OrdersTab } from '@/components/admin/OrdersTab';
@@ -24,7 +26,9 @@ import { toast } from 'sonner';
 export default function Admin() {
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { getUnreadByTypes, markTypesAsRead } = useNotifications();
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeTab, setActiveTab] = useState('products');
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
@@ -204,18 +208,37 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="products">
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value);
+          // Mark notifications as read when viewing relevant tabs
+          if (value === 'orders') markTypesAsRead(['new_order']);
+          if (value === 'transfers') markTypesAsRead(['new_transfer']);
+          if (value === 'exchange') markTypesAsRead(['book_deposit', 'book_borrow_request', 'book_purchase_request']);
+          if (value === 'ebooks') markTypesAsRead(['ebook_purchase']);
+        }}>
           <TabsList className="mb-6 flex-wrap h-auto gap-2">
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="variants">Variants</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="discounts">Discounts</TabsTrigger>
-            <TabsTrigger value="ebooks">Ebooks</TabsTrigger>
-            <TabsTrigger value="exchange">Book Exchange</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="ebooks" className="relative">
+              Ebooks
+              <NotificationBadge count={getUnreadByTypes(['ebook_purchase'])} className="ml-2" />
+            </TabsTrigger>
+            <TabsTrigger value="exchange" className="relative">
+              Book Exchange
+              <NotificationBadge count={getUnreadByTypes(['book_deposit', 'book_borrow_request', 'book_purchase_request'])} className="ml-2" />
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="relative">
+              Orders
+              <NotificationBadge count={getUnreadByTypes(['new_order'])} className="ml-2" />
+            </TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="transfers">Transfers</TabsTrigger>
+            <TabsTrigger value="transfers" className="relative">
+              Transfers
+              <NotificationBadge count={getUnreadByTypes(['new_transfer'])} className="ml-2" />
+            </TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 

@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/lib/types';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
+import { createNotification } from '@/hooks/useNotifications';
 
 interface OrdersTabProps {
   orders: Order[];
@@ -15,10 +16,18 @@ interface OrdersTabProps {
 }
 
 export function OrdersTab({ orders, onRefresh }: OrdersTabProps) {
-  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+  const handleUpdateOrderStatus = async (order: Order, status: string) => {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', order.id);
     if (error) toast.error('Failed to update order');
     else {
+      // Notify user about order status change
+      await createNotification(
+        order.user_id,
+        'order_status_update',
+        `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        `Your order #${order.id.slice(0, 8)} has been ${status}.`,
+        order.id
+      );
       toast.success('Order status updated');
       onRefresh();
     }
@@ -71,7 +80,7 @@ export function OrdersTab({ orders, onRefresh }: OrdersTabProps) {
                 <TableCell><Badge variant={getStatusColor(o.status)}>{o.status}</Badge></TableCell>
                 <TableCell>${o.total.toFixed(2)}</TableCell>
                 <TableCell>
-                  <Select value={o.status} onValueChange={(v) => handleUpdateOrderStatus(o.id, v)}>
+                  <Select value={o.status} onValueChange={(v) => handleUpdateOrderStatus(o, v)}>
                     <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
