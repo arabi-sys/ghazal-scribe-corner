@@ -34,6 +34,7 @@ export default function Admin() {
   const [exchangeBooks, setExchangeBooks] = useState<any[]>([]);
   const [exchangeTransactions, setExchangeTransactions] = useState<any[]>([]);
   const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [userEbooks, setUserEbooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function Admin() {
   }, [user, isAdmin, authLoading, navigate]);
 
   const fetchData = async () => {
-    const [productsRes, categoriesRes, ordersRes, usersRes, transactionsRes, transfersRes, ebooksRes, exchangeBooksRes, exchangeTransactionsRes, discountsRes] = await Promise.all([
+    const [productsRes, categoriesRes, ordersRes, usersRes, transactionsRes, transfersRes, ebooksRes, exchangeBooksRes, exchangeTransactionsRes, discountsRes, userEbooksRes] = await Promise.all([
       supabase.from('products').select('*, categories(*)').order('name'),
       supabase.from('categories').select('*').order('name'),
       supabase.from('orders').select('*').order('created_at', { ascending: false }),
@@ -55,7 +56,8 @@ export default function Admin() {
       supabase.from('ebooks').select('*').order('title'),
       supabase.from('exchange_books').select('*').order('created_at', { ascending: false }),
       supabase.from('exchange_transactions').select('*, exchange_books(*)').order('created_at', { ascending: false }),
-      supabase.from('discounts').select('*').order('created_at', { ascending: false })
+      supabase.from('discounts').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_ebooks').select('*, ebooks(*)').order('purchased_at', { ascending: false })
     ]);
     if (productsRes.data) setProducts(productsRes.data as Product[]);
     if (categoriesRes.data) setCategories(categoriesRes.data as Category[]);
@@ -67,6 +69,7 @@ export default function Admin() {
     if (exchangeBooksRes.data) setExchangeBooks(exchangeBooksRes.data);
     if (exchangeTransactionsRes.data) setExchangeTransactions(exchangeTransactionsRes.data);
     if (discountsRes.data) setDiscounts(discountsRes.data as Discount[]);
+    if (userEbooksRes.data) setUserEbooks(userEbooksRes.data);
     setLoading(false);
   };
 
@@ -86,7 +89,20 @@ export default function Admin() {
     );
   }
 
-  const totalRevenue = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
+  // Revenue from confirmed product orders
+  const ordersRevenue = orders
+    .filter(o => o.status === 'confirmed' || o.status === 'completed' || o.status === 'delivered')
+    .reduce((sum, o) => sum + o.total, 0);
+  
+  // Revenue from ebook purchases
+  const ebooksRevenue = userEbooks.reduce((sum, ue) => sum + (ue.ebooks?.price || 0), 0);
+  
+  // Revenue from approved money transfers
+  const transfersRevenue = transfers
+    .filter(t => t.status === 'approved')
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const totalRevenue = ordersRevenue + ebooksRevenue + transfersRevenue;
   const pendingTransfers = transfers.filter(t => t.status === 'pending').length;
 
   return (
