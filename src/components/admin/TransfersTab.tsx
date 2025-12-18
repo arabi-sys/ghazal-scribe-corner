@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MoneyTransfer } from '@/lib/types';
 import { toast } from 'sonner';
 import { Check, X } from 'lucide-react';
+import { createNotification } from '@/hooks/useNotifications';
 
 interface TransfersTabProps {
   transfers: MoneyTransfer[];
@@ -13,10 +14,18 @@ interface TransfersTabProps {
 }
 
 export function TransfersTab({ transfers, onRefresh }: TransfersTabProps) {
-  const handleUpdateTransferStatus = async (transferId: string, status: string) => {
-    const { error } = await supabase.from('money_transfers').update({ status }).eq('id', transferId);
+  const handleUpdateTransferStatus = async (transfer: MoneyTransfer, status: string) => {
+    const { error } = await supabase.from('money_transfers').update({ status }).eq('id', transfer.id);
     if (error) toast.error('Failed to update transfer');
     else {
+      // Notify the user about their transfer status
+      await createNotification(
+        transfer.user_id,
+        status === 'completed' ? 'transfer_approved' : 'transfer_declined',
+        status === 'completed' ? 'Transfer Approved' : 'Transfer Declined',
+        `Your transfer of $${transfer.amount} to ${transfer.receiver_full_name} has been ${status === 'completed' ? 'approved' : 'declined'}.`,
+        transfer.id
+      );
       toast.success('Transfer status updated');
       onRefresh();
     }
@@ -55,10 +64,10 @@ export function TransfersTab({ transfers, onRefresh }: TransfersTabProps) {
                   <div className="flex gap-2">
                     {t.status === 'pending' && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => handleUpdateTransferStatus(t.id, 'completed')}>
+                        <Button size="sm" variant="outline" onClick={() => handleUpdateTransferStatus(t, 'completed')}>
                           <Check className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleUpdateTransferStatus(t.id, 'declined')}>
+                        <Button size="sm" variant="destructive" onClick={() => handleUpdateTransferStatus(t, 'declined')}>
                           <X className="h-4 w-4" />
                         </Button>
                       </>

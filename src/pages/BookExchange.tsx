@@ -15,6 +15,12 @@ import { useToast } from '@/hooks/use-toast';
 import { BookOpen, Upload, Clock, ShoppingCart, Loader2, History } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { notifyAdmins, useNotifications } from '@/hooks/useNotifications';
+import { NotificationBadge } from '@/components/notifications/NotificationBadge';
+
+type User = {
+  id: string;
+};
 
 interface ExchangeBook {
   id: string;
@@ -43,7 +49,9 @@ interface ExchangeTransaction {
 export default function BookExchange() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { getUnreadByTypes, markTypesAsRead } = useNotifications();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('available');
   const [availableBooks, setAvailableBooks] = useState<ExchangeBook[]>([]);
   const [myDeposits, setMyDeposits] = useState<ExchangeBook[]>([]);
   const [myTransactions, setMyTransactions] = useState<ExchangeTransaction[]>([]);
@@ -114,6 +122,13 @@ export default function BookExchange() {
 
       if (error) throw error;
 
+      // Notify admins about new deposit
+      await notifyAdmins(
+        'book_deposit',
+        'New Book Deposit',
+        `"${depositForm.title}" by ${depositForm.author}`
+      );
+
       toast({ title: 'Book submitted for approval!' });
       setShowDepositDialog(false);
       setDepositForm({
@@ -152,6 +167,14 @@ export default function BookExchange() {
       });
 
       if (error) throw error;
+
+      // Notify admins about the request
+      await notifyAdmins(
+        transactionType === 'borrow' ? 'book_borrow_request' : 'book_purchase_request',
+        `Book ${transactionType === 'borrow' ? 'Borrow' : 'Purchase'} Request`,
+        `Request for book ID: ${bookId}`,
+        bookId
+      );
 
       toast({ title: `${transactionType === 'borrow' ? 'Borrow' : 'Purchase'} request submitted!` });
       fetchData();
@@ -288,11 +311,22 @@ export default function BookExchange() {
         </div>
       )}
 
-      <Tabs defaultValue="available" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Mark notifications as read when user views relevant tabs
+        if (value === 'my-deposits') markTypesAsRead(['deposit_approved', 'deposit_rejected']);
+        if (value === 'my-requests') markTypesAsRead(['borrow_approved', 'borrow_rejected', 'purchase_approved', 'purchase_rejected']);
+      }} className="space-y-4">
         <TabsList>
           <TabsTrigger value="available">Available Books</TabsTrigger>
-          <TabsTrigger value="my-deposits">My Deposits</TabsTrigger>
-          <TabsTrigger value="my-requests">My Requests</TabsTrigger>
+          <TabsTrigger value="my-deposits" className="relative">
+            My Deposits
+            <NotificationBadge count={getUnreadByTypes(['deposit_approved', 'deposit_rejected'])} className="ml-2" />
+          </TabsTrigger>
+          <TabsTrigger value="my-requests" className="relative">
+            My Requests
+            <NotificationBadge count={getUnreadByTypes(['borrow_approved', 'borrow_rejected', 'purchase_approved', 'purchase_rejected'])} className="ml-2" />
+          </TabsTrigger>
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />
             History
