@@ -174,6 +174,36 @@ export default function Admin() {
           </Card>
         </div>
 
+        {/* Revenue Breakdown */}
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <h3 className="font-semibold text-lg mb-4">Revenue Breakdown</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                  <span className="text-sm text-muted-foreground">Orders</span>
+                </div>
+                <p className="text-2xl font-bold">${ordersRevenue.toFixed(2)}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span className="text-sm text-muted-foreground">Ebooks</span>
+                </div>
+                <p className="text-2xl font-bold">${ebooksRevenue.toFixed(2)}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Send className="h-5 w-5 text-primary" />
+                  <span className="text-sm text-muted-foreground">Transfers</span>
+                </div>
+                <p className="text-2xl font-bold">${transfersRevenue.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="products">
           <TabsList className="mb-6 flex-wrap h-auto gap-2">
             <TabsTrigger value="products">Products</TabsTrigger>
