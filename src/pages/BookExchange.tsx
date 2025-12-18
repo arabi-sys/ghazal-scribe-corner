@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Upload, Clock, ShoppingCart, Loader2 } from 'lucide-react';
+import { BookOpen, Upload, Clock, ShoppingCart, Loader2, History } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 
 interface ExchangeBook {
@@ -292,6 +293,10 @@ export default function BookExchange() {
           <TabsTrigger value="available">Available Books</TabsTrigger>
           <TabsTrigger value="my-deposits">My Deposits</TabsTrigger>
           <TabsTrigger value="my-requests">My Requests</TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="h-4 w-4 mr-2" />
+            History
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="available" className="space-y-4">
@@ -460,6 +465,135 @@ export default function BookExchange() {
               <p>You haven't requested any books yet.</p>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6">
+          {/* Deposit History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Deposit History
+              </CardTitle>
+              <CardDescription>All books you have deposited</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {myDeposits.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Book Title</TableHead>
+                      <TableHead>Author</TableHead>
+                      <TableHead>Condition</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Deposited On</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {myDeposits.map((book) => (
+                      <TableRow key={book.id}>
+                        <TableCell className="font-medium">{book.title}</TableCell>
+                        <TableCell>{book.author}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{book.condition}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              book.status === 'available'
+                                ? 'default'
+                                : book.status === 'sold'
+                                ? 'outline'
+                                : 'secondary'
+                            }
+                          >
+                            {book.status.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(book.created_at).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">No deposits yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Borrow/Purchase History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Borrow & Purchase History
+              </CardTitle>
+              <CardDescription>All books you have borrowed or purchased</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {myTransactions.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Book Title</TableHead>
+                      <TableHead>Author</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Requested On</TableHead>
+                      <TableHead>Return Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {myTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="font-medium">
+                          {transaction.exchange_books?.title}
+                        </TableCell>
+                        <TableCell>{transaction.exchange_books?.author}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {transaction.transaction_type === 'borrow' ? 'Borrowed' : 'Purchased'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              transaction.status === 'active'
+                                ? 'default'
+                                : transaction.status === 'completed' || transaction.status === 'returned'
+                                ? 'secondary'
+                                : transaction.status === 'pending_approval'
+                                ? 'outline'
+                                : 'destructive'
+                            }
+                          >
+                            {transaction.status.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(transaction.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {transaction.transaction_type === 'borrow' && transaction.loan_due_date ? (
+                            <span className={
+                              new Date(transaction.loan_due_date) < new Date() && transaction.status === 'active'
+                                ? 'text-destructive font-semibold'
+                                : ''
+                            }>
+                              {new Date(transaction.loan_due_date).toLocaleDateString()}
+                              {new Date(transaction.loan_due_date) < new Date() && transaction.status === 'active' && ' (Overdue)'}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">N/A</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">No transactions yet</p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
       </div>
