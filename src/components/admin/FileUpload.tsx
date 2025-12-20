@@ -37,7 +37,7 @@ export function FileUpload({
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -48,8 +48,8 @@ export function FileUpload({
         throw uploadError;
       }
 
-      const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-      onChange(data.publicUrl);
+      // Store the file path (not public URL) for private buckets
+      onChange(filePath);
       toast.success("File uploaded successfully");
     } catch (error: any) {
       console.error("Error uploading file:", error);

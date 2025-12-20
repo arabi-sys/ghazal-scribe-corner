@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, ArrowLeft, Book, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,32 +77,47 @@ export default function ReadEbook() {
   const handleDownloadEbook = async () => {
     if (ebook?.content_url) {
       try {
-        // Extract file path from the URL
-        const urlParts = ebook.content_url.split('/ebook-files/');
-        const filePath = urlParts[urlParts.length - 1];
+        // content_url is now stored as file path (not full URL)
+        let filePath = ebook.content_url;
+        
+        // Handle legacy URLs that contain full path
+        if (filePath.includes('/ebook-files/')) {
+          const urlParts = filePath.split('/ebook-files/');
+          filePath = urlParts[urlParts.length - 1];
+        }
         
         // Create a signed URL for private bucket access
         const { data, error } = await supabase.storage
           .from('ebook-files')
-          .createSignedUrl(filePath, 60); // 60 seconds expiry
+          .createSignedUrl(filePath, 300); // 5 minutes expiry
         
         if (error) {
           console.error('Error creating signed URL:', error);
-          // Fallback to direct URL if signed URL fails
-          window.open(ebook.content_url, '_blank');
-        } else if (data?.signedUrl) {
-          // Create a temporary link and trigger download
+          toast.error('Failed to download ebook. Please try again.');
+          setShowDownloadDialog(false);
+          return;
+        }
+        
+        if (data?.signedUrl) {
+          // Fetch and download the file
+          const response = await fetch(data.signedUrl);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          
           const link = document.createElement('a');
-          link.href = data.signedUrl;
-          link.download = `${ebook.title}.epub`;
+          link.href = url;
+          const extension = filePath.split('.').pop() || 'epub';
+          link.download = `${ebook.title}.${extension}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          toast.success('Download started!');
         }
       } catch (err) {
         console.error('Download error:', err);
-        // Fallback to direct URL
-        window.open(ebook.content_url, '_blank');
+        toast.error('Failed to download ebook. Please try again.');
       }
       setShowDownloadDialog(false);
     }
