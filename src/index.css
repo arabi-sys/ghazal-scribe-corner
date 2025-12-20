@@ -157,3 +157,121 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* 3D Book & Card Animations */
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  /* Glassmorphism card effect */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-md border border-border/50;
+    box-shadow: 0 8px 32px 0 hsl(var(--primary) / 0.1);
+  }
+
+  .glass-card:hover {
+    @apply bg-card/90 border-border;
+    box-shadow: 0 8px 32px 0 hsl(var(--primary) / 0.2);
+  }
+
+  /* 3D Book effect */
+  .book-3d {
+    transform-style: preserve-3d;
+    transition: transform 0.4s ease;
+  }
+
+  .book-3d:hover {
+    transform: rotateY(-10deg) rotateX(5deg) translateZ(20px);
+  }
+
+  .book-cover {
+    @apply relative overflow-hidden;
+    box-shadow: 
+      -5px 5px 15px hsl(var(--foreground) / 0.2),
+      inset -2px 0 5px hsl(var(--foreground) / 0.1);
+  }
+
+  .book-cover::after {
+    content: '';
+    @apply absolute inset-y-0 left-0 w-4;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--foreground) / 0.15) 0%,
+      transparent 100%
+    );
+  }
+
+  /* Micro-animations for buttons */
+  .btn-micro {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .btn-micro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
+  }
+
+  .btn-micro:active {
+    transform: translateY(0);
+  }
+
+  /* Card hover animations */
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px hsl(var(--foreground) / 0.1);
+  }
+
+  /* Smooth image zoom */
+  .img-zoom {
+    @apply transition-transform duration-500 ease-out;
+  }
+
+  .img-zoom:hover {
+    transform: scale(1.05);
+  }
+
+  /* Pulse animation for badges */
+  .badge-pulse {
+    animation: badge-pulse 2s infinite;
+  }
+
+  @keyframes badge-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Floating animation */
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}

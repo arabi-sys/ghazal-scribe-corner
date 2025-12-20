@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Package } from 'lucide-react';
 import { notifyAdmins } from '@/hooks/useNotifications';
+import { triggerConfetti } from '@/components/ui/confetti';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -97,6 +98,7 @@ export default function Checkout() {
         order.id
       );
 
+      triggerConfetti();
       toast.success('Order placed successfully!');
       navigate('/orders');
     } catch (error) {

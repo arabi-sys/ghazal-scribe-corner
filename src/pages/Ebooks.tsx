@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Search, Book, BookOpen } from 'lucide-react';
+import { Search, BookOpen, Book } from 'lucide-react';
 import { notifyAdmins } from '@/hooks/useNotifications';
+import { BookCard3D } from '@/components/products/BookCard3D';
+import { ProductGridSkeleton } from '@/components/products/ProductCardSkeleton';
+import { triggerBookConfetti } from '@/components/ui/confetti';
 
 interface Ebook {
   id: string;
@@ -76,6 +78,7 @@ export default function Ebooks() {
       }
 
       setPurchasedIds([...purchasedIds, ebook.id]);
+      triggerBookConfetti();
       toast.success(`"${ebook.title}" added to your library!`);
     } catch (error) {
       console.error('Purchase error:', error);
@@ -97,8 +100,12 @@ export default function Ebooks() {
   if (loading) {
     return (
       <Layout>
-        <div className="container flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="container py-12">
+          <div className="mb-8">
+            <div className="h-10 w-48 bg-muted animate-pulse rounded mb-2" />
+            <div className="h-5 w-64 bg-muted animate-pulse rounded" />
+          </div>
+          <ProductGridSkeleton count={6} type="book" />
         </div>
       </Layout>
     );
@@ -156,53 +163,21 @@ export default function Ebooks() {
             const isPurchased = purchasedIds.includes(ebook.id);
             
             return (
-              <Card key={ebook.id} className="group overflow-hidden flex flex-col">
-                <div className="aspect-[2/3] bg-muted relative overflow-hidden">
-                  {ebook.cover_url ? (
-                    <img
-                      src={ebook.cover_url}
-                      alt={ebook.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Book className="h-16 w-16 text-muted-foreground/30" />
-                    </div>
-                  )}
-                  {ebook.is_free && (
-                    <Badge className="absolute top-2 right-2 bg-green-500">Free</Badge>
-                  )}
-                </div>
-                <CardContent className="p-4 flex-1">
-                  <h3 className="font-serif font-semibold line-clamp-2">{ebook.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{ebook.author}</p>
-                  {ebook.genre && (
-                    <Badge variant="outline" className="mt-2">{ebook.genre}</Badge>
-                  )}
-                  {ebook.pages && (
-                    <p className="text-xs text-muted-foreground mt-2">{ebook.pages} pages</p>
-                  )}
-                </CardContent>
-                <CardFooter className="p-4 pt-0 flex items-center justify-between">
-                  <span className="font-bold text-lg">
-                    {ebook.is_free ? 'Free' : `$${ebook.price.toFixed(2)}`}
-                  </span>
-                  {isPurchased ? (
-                    <Button size="sm" asChild>
-                      <Link to={`/read/${ebook.id}`}>Read</Link>
-                    </Button>
-                  ) : (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handlePurchase(ebook)}
-                      disabled={purchasing === ebook.id}
-                    >
-                      {purchasing === ebook.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      {ebook.is_free ? 'Get Free' : 'Buy'}
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
+              <BookCard3D
+                key={ebook.id}
+                id={ebook.id}
+                title={ebook.title}
+                author={ebook.author}
+                coverUrl={ebook.cover_url}
+                price={ebook.price}
+                isFree={ebook.is_free}
+                genre={ebook.genre}
+                pages={ebook.pages}
+                isPurchased={isPurchased}
+                isPurchasing={purchasing === ebook.id}
+                onPurchase={() => handlePurchase(ebook)}
+                readLink={`/read/${ebook.id}`}
+              />
             );
           })}
         </div>

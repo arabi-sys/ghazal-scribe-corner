@@ -14,14 +14,14 @@ export function ProductCard({ product }: ProductCardProps) {
   const isOutOfStock = product.stock <= 0;
 
   return (
-    <Card className="group overflow-hidden transition-all hover:shadow-lg">
+    <Card className="group overflow-hidden card-hover glass-card">
       <Link to={`/products/${product.slug}`}>
         <div className="aspect-square overflow-hidden bg-muted">
           {product.image_url ? (
             <img
               src={product.image_url}
               alt={product.name}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              className="h-full w-full object-cover img-zoom"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -52,7 +52,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button 
-          className="w-full" 
+          className="w-full btn-micro" 
           onClick={() => addToCart(product.id)}
           disabled={isOutOfStock}
         >
