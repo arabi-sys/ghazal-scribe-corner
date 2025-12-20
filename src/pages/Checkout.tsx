@@ -104,27 +104,36 @@ export default function Checkout() {
           .from('profiles')
           .select('full_name, email')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (profile) {
-          await supabase.functions.invoke('send-order-confirmation', {
-            body: {
-              email: profile.email,
-              fullName: profile.full_name || 'Customer',
-              orderId: order.id,
-              items: items.map(item => ({
-                name: item.products?.name || 'Unknown Product',
-                quantity: item.quantity,
-                price: item.products?.price || 0
-              })),
-              total: totalPrice,
-              shippingAddress
+        const recipientEmail = profile?.email || user.email;
+
+        if (recipientEmail) {
+          const { error: emailInvokeError } = await supabase.functions.invoke(
+            'send-order-confirmation',
+            {
+              body: {
+                email: recipientEmail,
+                fullName: profile?.full_name || 'Customer',
+                orderId: order.id,
+                items: items.map((item) => ({
+                  name: item.products?.name || 'Unknown Product',
+                  quantity: item.quantity,
+                  price: item.products?.price || 0,
+                })),
+                total: totalPrice,
+                shippingAddress,
+              },
             }
-          });
+          );
+
+          if (emailInvokeError) {
+            throw emailInvokeError;
+          }
         }
       } catch (emailError) {
         console.error('Failed to send order confirmation email:', emailError);
-        // Don't block checkout if email fails
+        toast.warning('Order placed, but confirmation email was not sent.');
       }
 
       triggerConfetti();

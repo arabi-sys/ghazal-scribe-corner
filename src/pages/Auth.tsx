@@ -218,12 +218,19 @@ export default function Auth() {
     } else {
       // Send welcome email
       try {
-        await supabase.functions.invoke('send-welcome-email', {
-          body: { email, fullName }
-        });
+        const { error: emailInvokeError } = await supabase.functions.invoke(
+          'send-welcome-email',
+          {
+            body: { email, fullName },
+          }
+        );
+
+        if (emailInvokeError) {
+          throw emailInvokeError;
+        }
       } catch (emailError) {
         console.error('Failed to send welcome email:', emailError);
-        // Don't block signup if email fails
+        toast.warning('Account created, but welcome email was not sent.');
       }
       
       toast.success('Account created successfully!');
