@@ -98,6 +98,35 @@ export default function Checkout() {
         order.id
       );
 
+      // Send order confirmation email
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          await supabase.functions.invoke('send-order-confirmation', {
+            body: {
+              email: profile.email,
+              fullName: profile.full_name || 'Customer',
+              orderId: order.id,
+              items: items.map(item => ({
+                name: item.products?.name || 'Unknown Product',
+                quantity: item.quantity,
+                price: item.products?.price || 0
+              })),
+              total: totalPrice,
+              shippingAddress
+            }
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+        // Don't block checkout if email fails
+      }
+
       triggerConfetti();
       toast.success('Order placed successfully!');
       navigate('/orders');
