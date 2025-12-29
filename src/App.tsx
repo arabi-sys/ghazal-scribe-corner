@@ -21,6 +21,7 @@ import MyEbooks from "./pages/MyEbooks";
 import ReadEbook from "./pages/ReadEbook";
 import BookExchange from "./pages/BookExchange";
 import Wishlist from "./pages/Wishlist";
+import AudiobookStudio from "./pages/AudiobookStudio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/read/:id" element={<ReadEbook />} />
               <Route path="/book-exchange" element={<BookExchange />} />
               <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/audiobook-studio" element={<AudiobookStudio />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </CartProvider>

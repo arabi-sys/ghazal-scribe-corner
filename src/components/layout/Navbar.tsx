@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, User, Menu, X, BookOpen, Search, Heart, Bell } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, BookOpen, Search, Heart, Bell, Headphones } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -18,6 +18,7 @@ export function Navbar() {
     { href: '/categories', label: 'Categories' },
     { href: '/products', label: 'Products' },
     { href: '/ebooks', label: 'Ebooks' },
+    { href: '/audiobook-studio', label: 'Audiobook Studio' },
     { href: '/book-exchange', label: 'Book Exchange' },
   ];
 
