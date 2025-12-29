@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, Truck, Wallet } from 'lucide-react';
 import { notifyAdmins } from '@/hooks/useNotifications';
 import { triggerConfetti } from '@/components/ui/confetti';
+
+type PaymentMethod = 'cash_on_delivery' | 'wishmoney';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ export default function Checkout() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_delivery');
 
   if (!user) {
     navigate('/auth');
@@ -40,14 +43,14 @@ export default function Checkout() {
     setLoading(true);
 
     try {
-      // Create order
+      // Create order with payment method
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
           total: totalPrice,
           shipping_address: shippingAddress,
-          status: 'confirmed'
+          status: paymentMethod === 'cash_on_delivery' ? 'confirmed' : 'pending_payment'
         })
         .select()
         .single();
@@ -77,24 +80,25 @@ export default function Checkout() {
         });
       }
 
-      // Create transaction
+      // Create transaction with payment method
       await supabase
         .from('transactions')
         .insert({
           order_id: order.id,
           user_id: user.id,
           amount: totalPrice,
-          status: 'completed'
+          status: paymentMethod === 'cash_on_delivery' ? 'pending' : 'completed'
         });
 
       // Clear cart
       await clearCart();
 
       // Notify admins about new order
+      const paymentLabel = paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'WishMoney';
       await notifyAdmins(
         'new_order',
         'New Order Placed',
-        `Order #${order.id.slice(0, 8)} - $${totalPrice.toFixed(2)}`,
+        `Order #${order.id.slice(0, 8)} - $${totalPrice.toFixed(2)} (${paymentLabel})`,
         order.id
       );
 
@@ -123,6 +127,7 @@ export default function Checkout() {
                 })),
                 total: totalPrice,
                 shippingAddress,
+                paymentMethod: paymentLabel,
               },
             }
           );
@@ -153,27 +158,71 @@ export default function Checkout() {
         <h1 className="font-serif text-4xl font-bold text-foreground mb-8">Checkout</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Shipping Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Shipping Address</Label>
-                <Textarea
-                  id="address"
-                  placeholder="Enter your full shipping address..."
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  rows={4}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Shipping & Payment */}
+          <div className="space-y-6">
+            {/* Shipping Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Shipping Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Shipping Address</Label>
+                  <Textarea
+                    id="address"
+                    placeholder="Enter your full shipping address..."
+                    value={shippingAddress}
+                    onChange={(e) => setShippingAddress(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Method */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Method</CardTitle>
+                <CardDescription>Choose how you'd like to pay</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                  className="space-y-3"
+                >
+                  <div className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'cash_on_delivery' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
+                    <RadioGroupItem value="cash_on_delivery" id="cash_on_delivery" />
+                    <Label htmlFor="cash_on_delivery" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="p-2 rounded-full bg-muted">
+                        <Truck className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Cash on Delivery</p>
+                        <p className="text-sm text-muted-foreground">Pay when you receive your order</p>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${paymentMethod === 'wishmoney' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
+                    <RadioGroupItem value="wishmoney" id="wishmoney" />
+                    <Label htmlFor="wishmoney" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <div className="p-2 rounded-full bg-muted">
+                        <Wallet className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">WishMoney</p>
+                        <p className="text-sm text-muted-foreground">Pay instantly with WishMoney</p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Order Summary */}
-          <Card>
+          <Card className="h-fit">
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>
             </CardHeader>
@@ -216,6 +265,10 @@ export default function Checkout() {
                   <span className="text-muted-foreground">Shipping</span>
                   <span>Free</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payment</span>
+                  <span>{paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'WishMoney'}</span>
+                </div>
               </div>
 
               <hr className="my-4" />
@@ -232,7 +285,7 @@ export default function Checkout() {
                 disabled={loading}
               >
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Place Order
+                {paymentMethod === 'cash_on_delivery' ? 'Place Order' : 'Pay with WishMoney'}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center mt-4">
