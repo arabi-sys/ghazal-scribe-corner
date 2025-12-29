@@ -31,8 +31,9 @@ export default function AudiobookStudio() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      toast.error("Please upload a PDF file");
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.pdf') && !fileName.endsWith('.epub')) {
+      toast.error("Please upload a PDF or EPUB file");
       return;
     }
 
@@ -183,7 +184,7 @@ export default function AudiobookStudio() {
                   Content Source
                 </CardTitle>
                 <CardDescription>
-                  Upload a PDF or enter text directly
+                  Upload a PDF/EPUB or enter text directly
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -191,7 +192,7 @@ export default function AudiobookStudio() {
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="upload" className="flex items-center gap-2">
                       <Upload className="h-4 w-4" />
-                      Upload PDF
+                      Upload File
                     </TabsTrigger>
                     <TabsTrigger value="text" className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
@@ -201,12 +202,12 @@ export default function AudiobookStudio() {
 
                   <TabsContent value="upload" className="space-y-4 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="pdf-upload">PDF File</Label>
+                      <Label htmlFor="pdf-upload">PDF or EPUB File</Label>
                       <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                         <Input
                           id="pdf-upload"
                           type="file"
-                          accept=".pdf"
+                          accept=".pdf,.epub"
                           onChange={handleFileUpload}
                           disabled={isExtracting}
                           className="hidden"
@@ -226,7 +227,7 @@ export default function AudiobookStudio() {
                             <>
                               <Upload className="h-8 w-8 text-muted-foreground" />
                               <span className="text-sm text-muted-foreground">
-                                {fileName || "Click to upload PDF (max 10MB)"}
+                                {fileName || "Click to upload PDF or EPUB (max 10MB)"}
                               </span>
                             </>
                           )}
@@ -312,7 +313,7 @@ export default function AudiobookStudio() {
                   <AudiobookPlayer
                     audioUrl={audioUrl}
                     isGenerating={isGenerating}
-                    title={fileName?.replace('.pdf', '') || "Your Audiobook"}
+                    title={fileName?.replace(/\.(pdf|epub)$/i, '') || "Your Audiobook"}
                   />
                 </CardContent>
               </Card>
@@ -350,7 +351,7 @@ export default function AudiobookStudio() {
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">How it works</p>
                   <p>
-                    Upload a PDF document or enter text directly. Our AI will extract the content 
+                    Upload a PDF or EPUB document, or enter text directly. Our AI will extract the content 
                     and convert it into natural-sounding speech using professional voice synthesis. 
                     Audio is generated on-demand for streaming playback.
                   </p>
