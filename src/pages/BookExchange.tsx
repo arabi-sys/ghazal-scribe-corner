@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Upload, Clock, ShoppingCart, Loader2, History } from 'lucide-react';
+import { BookOpen, Upload, Repeat, ShoppingCart, Loader2, History } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { notifyAdmins, useNotifications } from '@/hooks/useNotifications';
@@ -43,7 +43,9 @@ interface ExchangeTransaction {
   status: string;
   loan_due_date?: string;
   created_at: string;
+  offered_book_id?: string;
   exchange_books: ExchangeBook;
+  offered_book?: ExchangeBook;
 }
 
 export default function BookExchange() {
@@ -57,6 +59,8 @@ export default function BookExchange() {
   const [myTransactions, setMyTransactions] = useState<ExchangeTransaction[]>([]);
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [hasOverdueBooks, setHasOverdueBooks] = useState(false);
+  const [exchangeDialogBook, setExchangeDialogBook] = useState<ExchangeBook | null>(null);
+  const [selectedOfferBook, setSelectedOfferBook] = useState<string>('');
 
   const [depositForm, setDepositForm] = useState({
     title: '',
@@ -82,7 +86,7 @@ export default function BookExchange() {
         supabase.from('exchange_books').select('*').eq('depositor_id', user?.id),
         supabase
           .from('exchange_transactions')
-          .select('*, exchange_books(*)')
+          .select('*, exchange_books!exchange_transactions_book_id_fkey(*)')
           .eq('user_id', user?.id)
       ]);
 
@@ -102,7 +106,7 @@ export default function BookExchange() {
       .from('exchange_transactions')
       .select('*')
       .eq('user_id', user?.id)
-      .eq('transaction_type', 'borrow')
+      .eq('transaction_type', 'exchange')
       .eq('status', 'active')
       .lt('loan_due_date', new Date().toISOString());
 
@@ -146,13 +150,22 @@ export default function BookExchange() {
     }
   };
 
-  const handleRequestBook = async (bookId: string, transactionType: 'borrow' | 'purchase') => {
+  const handleRequestBook = async (bookId: string, transactionType: 'exchange' | 'purchase', offeredBookId?: string) => {
     if (!user) return;
 
-    if (hasOverdueBooks && transactionType === 'borrow') {
+    if (hasOverdueBooks && transactionType === 'exchange') {
       toast({
-        title: 'Cannot borrow books',
-        description: 'You have overdue books. Please return them first.',
+        title: 'Cannot exchange books',
+        description: 'You have overdue exchanges. Please return them first.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (transactionType === 'exchange' && !offeredBookId) {
+      toast({
+        title: 'Select a book to offer',
+        description: 'You must offer one of your books to exchange.',
         variant: 'destructive'
       });
       return;
@@ -163,20 +176,21 @@ export default function BookExchange() {
         book_id: bookId,
         user_id: user.id,
         transaction_type: transactionType,
-        status: 'pending_approval'
+        status: 'pending_approval',
+        offered_book_id: offeredBookId || null
       });
 
       if (error) throw error;
 
       // Notify admins about the request
       await notifyAdmins(
-        transactionType === 'borrow' ? 'book_borrow_request' : 'book_purchase_request',
-        `Book ${transactionType === 'borrow' ? 'Borrow' : 'Purchase'} Request`,
+        transactionType === 'exchange' ? 'book_exchange_request' : 'book_purchase_request',
+        `Book ${transactionType === 'exchange' ? 'Exchange' : 'Purchase'} Request`,
         `Request for book ID: ${bookId}`,
         bookId
       );
 
-      toast({ title: `${transactionType === 'borrow' ? 'Borrow' : 'Purchase'} request submitted!` });
+      toast({ title: `${transactionType === 'exchange' ? 'Exchange' : 'Purchase'} request submitted!` });
       fetchData();
     } catch (error) {
       console.error('Error requesting book:', error);
@@ -214,7 +228,7 @@ export default function BookExchange() {
         <div>
           <h1 className="text-3xl font-bold">Book Exchange</h1>
           <p className="text-muted-foreground mt-2">
-            Share your used books with others. Borrow for free or purchase for $5.
+            Share your used books with others. Exchange for another book or purchase for $5.
           </p>
         </div>
         <Dialog open={showDepositDialog} onOpenChange={setShowDepositDialog}>
@@ -228,7 +242,7 @@ export default function BookExchange() {
             <DialogHeader>
               <DialogTitle>Deposit a Book</DialogTitle>
               <DialogDescription>
-                Submit your used book for approval. Once approved, others can borrow or purchase it.
+                Submit your used book for approval. Once approved, others can exchange or purchase it.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 overflow-y-auto">
@@ -307,7 +321,7 @@ export default function BookExchange() {
 
       {hasOverdueBooks && (
         <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded mb-4">
-          You have overdue books. Please return them to continue borrowing.
+          You have overdue exchanges. Please return them to continue exchanging.
         </div>
       )}
 
@@ -315,7 +329,7 @@ export default function BookExchange() {
         setActiveTab(value);
         // Mark notifications as read when user views relevant tabs
         if (value === 'my-deposits') markTypesAsRead(['deposit_approved', 'deposit_rejected']);
-        if (value === 'my-requests') markTypesAsRead(['borrow_approved', 'borrow_rejected', 'purchase_approved', 'purchase_rejected']);
+        if (value === 'my-requests') markTypesAsRead(['exchange_approved', 'exchange_rejected', 'purchase_approved', 'purchase_rejected']);
       }} className="space-y-4">
         <TabsList>
           <TabsTrigger value="available">Available Books</TabsTrigger>
@@ -325,7 +339,7 @@ export default function BookExchange() {
           </TabsTrigger>
           <TabsTrigger value="my-requests" className="relative">
             My Requests
-            <NotificationBadge count={getUnreadByTypes(['borrow_approved', 'borrow_rejected', 'purchase_approved', 'purchase_rejected'])} className="ml-2" />
+            <NotificationBadge count={getUnreadByTypes(['exchange_approved', 'exchange_rejected', 'purchase_approved', 'purchase_rejected'])} className="ml-2" />
           </TabsTrigger>
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />
@@ -369,11 +383,11 @@ export default function BookExchange() {
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => handleRequestBook(book.id, 'borrow')}
-                    disabled={book.depositor_id === user?.id}
+                    onClick={() => setExchangeDialogBook(book)}
+                    disabled={book.depositor_id === user?.id || myDeposits.filter(d => d.status === 'available').length === 0}
                   >
-                    <Clock className="h-4 w-4 mr-2" />
-                    Borrow (2 weeks)
+                    <Repeat className="h-4 w-4 mr-2" />
+                    Exchange
                   </Button>
                   <Button
                     className="flex-1"
@@ -393,6 +407,66 @@ export default function BookExchange() {
               <p>No books available for exchange yet.</p>
             </div>
           )}
+
+          {/* Exchange Book Dialog */}
+          <Dialog open={!!exchangeDialogBook} onOpenChange={(open) => {
+            if (!open) {
+              setExchangeDialogBook(null);
+              setSelectedOfferBook('');
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Exchange Book</DialogTitle>
+                <DialogDescription>
+                  Select one of your available books to offer in exchange for "{exchangeDialogBook?.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label>Your book to offer</Label>
+                <Select value={selectedOfferBook} onValueChange={setSelectedOfferBook}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="Select a book to offer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {myDeposits
+                      .filter((d) => d.status === 'available')
+                      .map((book) => (
+                        <SelectItem key={book.id} value={book.id}>
+                          {book.title} by {book.author}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {myDeposits.filter((d) => d.status === 'available').length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You need to deposit a book first before you can exchange.
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setExchangeDialogBook(null);
+                  setSelectedOfferBook('');
+                }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (exchangeDialogBook && selectedOfferBook) {
+                      handleRequestBook(exchangeDialogBook.id, 'exchange', selectedOfferBook);
+                      setExchangeDialogBook(null);
+                      setSelectedOfferBook('');
+                    }
+                  }}
+                  disabled={!selectedOfferBook}
+                >
+                  <Repeat className="h-4 w-4 mr-2" />
+                  Request Exchange
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="my-deposits">
@@ -555,14 +629,14 @@ export default function BookExchange() {
             </CardContent>
           </Card>
 
-          {/* Borrow/Purchase History */}
+          {/* Exchange/Purchase History */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Borrow & Purchase History
+                <Repeat className="h-5 w-5" />
+                Exchange & Purchase History
               </CardTitle>
-              <CardDescription>All books you have borrowed or purchased</CardDescription>
+              <CardDescription>All books you have exchanged or purchased</CardDescription>
             </CardHeader>
             <CardContent>
               {myTransactions.length > 0 ? (
@@ -586,7 +660,7 @@ export default function BookExchange() {
                         <TableCell>{transaction.exchange_books?.author}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {transaction.transaction_type === 'borrow' ? 'Borrowed' : 'Purchased'}
+                            {transaction.transaction_type === 'exchange' ? 'Exchanged' : 'Purchased'}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -606,7 +680,7 @@ export default function BookExchange() {
                         </TableCell>
                         <TableCell>{new Date(transaction.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          {transaction.transaction_type === 'borrow' && transaction.loan_due_date ? (
+                          {transaction.transaction_type === 'exchange' && transaction.loan_due_date ? (
                             <span className={
                               new Date(transaction.loan_due_date) < new Date() && transaction.status === 'active'
                                 ? 'text-destructive font-semibold'

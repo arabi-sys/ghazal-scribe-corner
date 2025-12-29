@@ -214,6 +214,7 @@ export type Database = {
           created_at: string
           id: string
           loan_due_date: string | null
+          offered_book_id: string | null
           returned_at: string | null
           status: string
           transaction_type: string
@@ -225,6 +226,7 @@ export type Database = {
           created_at?: string
           id?: string
           loan_due_date?: string | null
+          offered_book_id?: string | null
           returned_at?: string | null
           status?: string
           transaction_type: string
@@ -236,6 +238,7 @@ export type Database = {
           created_at?: string
           id?: string
           loan_due_date?: string | null
+          offered_book_id?: string | null
           returned_at?: string | null
           status?: string
           transaction_type?: string
@@ -246,6 +249,13 @@ export type Database = {
           {
             foreignKeyName: "exchange_transactions_book_id_fkey"
             columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "exchange_books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_transactions_offered_book_id_fkey"
+            columns: ["offered_book_id"]
             isOneToOne: false
             referencedRelation: "exchange_books"
             referencedColumns: ["id"]
