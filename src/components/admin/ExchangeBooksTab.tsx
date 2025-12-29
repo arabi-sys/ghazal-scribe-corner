@@ -32,6 +32,7 @@ interface ExchangeTransaction {
   transaction_type: string;
   status: string;
   created_at: string;
+  offered_book_id?: string;
   exchange_books: ExchangeBook;
 }
 
@@ -114,8 +115,8 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
     try {
       const updates: any = { status: 'active' };
 
-      // Set loan due date for borrows (2 weeks)
-      if (transaction.transaction_type === 'borrow') {
+      // Set loan due date for exchanges (2 weeks)
+      if (transaction.transaction_type === 'exchange') {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + 14);
         updates.loan_due_date = dueDate.toISOString();
@@ -128,7 +129,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
 
       if (transactionError) throw transactionError;
 
-      // Update book status
+      // Update requested book status
       const newBookStatus = transaction.transaction_type === 'purchase' ? 'sold' : 'on_loan';
       const { error: bookError } = await supabase
         .from('exchange_books')
@@ -137,17 +138,27 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
 
       if (bookError) throw bookError;
 
+      // If exchange, also update the offered book status
+      if (transaction.transaction_type === 'exchange' && transaction.offered_book_id) {
+        const { error: offeredBookError } = await supabase
+          .from('exchange_books')
+          .update({ status: 'on_loan' })
+          .eq('id', transaction.offered_book_id);
+
+        if (offeredBookError) throw offeredBookError;
+      }
+
       // Notify the user
-      const notificationType = transaction.transaction_type === 'borrow' ? 'borrow_approved' : 'purchase_approved';
+      const notificationType = transaction.transaction_type === 'exchange' ? 'exchange_approved' : 'purchase_approved';
       await createNotification(
         transaction.user_id,
         notificationType,
-        `${transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'} Request Approved`,
+        `${transaction.transaction_type === 'exchange' ? 'Exchange' : 'Purchase'} Request Approved`,
         `Your ${transaction.transaction_type} request for "${transaction.exchange_books.title}" has been approved.`,
         transaction.book_id
       );
 
-      toast({ title: `${transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'} approved!` });
+      toast({ title: `${transaction.transaction_type === 'exchange' ? 'Exchange' : 'Purchase'} approved!` });
       onRefresh();
     } catch (error) {
       console.error('Error approving transaction:', error);
@@ -168,11 +179,11 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
       if (error) throw error;
 
       // Notify the user
-      const notificationType = transaction.transaction_type === 'borrow' ? 'borrow_rejected' : 'purchase_rejected';
+      const notificationType = transaction.transaction_type === 'exchange' ? 'exchange_rejected' : 'purchase_rejected';
       await createNotification(
         transaction.user_id,
         notificationType,
-        `${transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'} Request Rejected`,
+        `${transaction.transaction_type === 'exchange' ? 'Exchange' : 'Purchase'} Request Rejected`,
         `Your ${transaction.transaction_type} request for "${transaction.exchange_books.title}" has been rejected.`,
         transaction.book_id
       );
@@ -262,7 +273,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
       <Card>
         <CardHeader>
           <CardTitle>Pending Requests</CardTitle>
-          <CardDescription>Approve or reject borrow/purchase requests</CardDescription>
+          <CardDescription>Approve or reject exchange/purchase requests</CardDescription>
         </CardHeader>
         <CardContent>
           {pendingTransactions.length === 0 ? (
@@ -285,7 +296,7 @@ export function ExchangeBooksTab({ books, transactions, onRefresh }: Props) {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {transaction.transaction_type === 'borrow' ? 'Borrow' : 'Purchase'}
+                        {transaction.transaction_type === 'exchange' ? 'Exchange' : 'Purchase'}
                       </Badge>
                     </TableCell>
                     <TableCell>
