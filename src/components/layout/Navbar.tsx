@@ -79,6 +79,11 @@ export function Navbar() {
 
           {user ? (
             <div className="hidden md:flex items-center gap-2">
+              <Link to="/profile">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
               <Link to="/orders" className="relative">
                 <Button variant="ghost" size="sm">
                   Orders
@@ -135,6 +140,13 @@ export function Navbar() {
                 <hr className="my-2 border-border" />
                 {user ? (
                   <>
+                    <Link 
+                      to="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-lg font-medium py-2"
+                    >
+                      My Profile
+                    </Link>
                     <Link 
                       to="/orders"
                       onClick={() => setMobileMenuOpen(false)}
