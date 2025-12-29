@@ -22,6 +22,7 @@ import ReadEbook from "./pages/ReadEbook";
 import BookExchange from "./pages/BookExchange";
 import Wishlist from "./pages/Wishlist";
 import AudiobookStudio from "./pages/AudiobookStudio";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/products" element={<Products />} />
               <Route path="/products/:slug" element={<ProductDetail />} />
