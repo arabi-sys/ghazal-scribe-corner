@@ -19,7 +19,7 @@ export default function AudiobookStudio() {
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState("upload");
-  const [selectedVoice, setSelectedVoice] = useState("JBFqnCBsd6RMkjVDRZzb");
+  const [selectedVoice, setSelectedVoice] = useState("alloy");
   const [extractedText, setExtractedText] = useState("");
   const [manualText, setManualText] = useState("");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);

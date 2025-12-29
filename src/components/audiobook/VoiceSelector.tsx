@@ -14,14 +14,12 @@ interface Voice {
 }
 
 const voices: Voice[] = [
-  { id: "JBFqnCBsd6RMkjVDRZzb", name: "George", description: "Warm, narrative male voice" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah", description: "Soft, engaging female voice" },
-  { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily", description: "Clear, expressive female voice" },
-  { id: "nPczCjzI2devNBz1zQrb", name: "Brian", description: "Deep, authoritative male voice" },
-  { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", description: "British, professional male voice" },
-  { id: "XrExE9yKIg1WjnnlVkGX", name: "Matilda", description: "Friendly, conversational female voice" },
-  { id: "cgSgspJ2msm6clMCkdW9", name: "Jessica", description: "Young, dynamic female voice" },
-  { id: "cjVigY5qzO86Huf0OWal", name: "Eric", description: "Calm, storytelling male voice" },
+  { id: "alloy", name: "Alloy", description: "Neutral, balanced voice" },
+  { id: "echo", name: "Echo", description: "Warm, conversational male voice" },
+  { id: "fable", name: "Fable", description: "Expressive, British accent" },
+  { id: "onyx", name: "Onyx", description: "Deep, authoritative male voice" },
+  { id: "nova", name: "Nova", description: "Friendly, engaging female voice" },
+  { id: "shimmer", name: "Shimmer", description: "Clear, expressive female voice" },
 ];
 
 interface VoiceSelectorProps {
