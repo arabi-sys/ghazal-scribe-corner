@@ -6,22 +6,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Product, Order, Profile, Transaction, MoneyTransfer } from '@/lib/types';
 import { Download, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
 
+interface UserEbook {
+  id: string;
+  ebooks?: { price: number } | null;
+}
+
 interface ReportsTabProps {
   products: Product[];
   orders: Order[];
   users: Profile[];
   transactions: Transaction[];
   transfers: MoneyTransfer[];
+  userEbooks?: UserEbook[];
 }
 
 type ReportType = 'sales' | 'users' | 'inventory' | 'transfers';
 
-export function ReportsTab({ products, orders, users, transactions, transfers }: ReportsTabProps) {
+export function ReportsTab({ products, orders, users, transactions, transfers, userEbooks = [] }: ReportsTabProps) {
   const [reportType, setReportType] = useState<ReportType>('sales');
 
-  const completedTransactions = transactions.filter(t => t.status === 'completed');
-  const totalRevenue = completedTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const completedOrders = orders.filter(o => o.status === 'completed');
+  // Revenue from confirmed product orders
+  const ordersRevenue = orders
+    .filter(o => o.status === 'confirmed' || o.status === 'completed' || o.status === 'delivered')
+    .reduce((sum, o) => sum + o.total, 0);
+  
+  // Revenue from ebook purchases
+  const ebooksRevenue = userEbooks.reduce((sum, ue) => sum + (ue.ebooks?.price || 0), 0);
+  
+  const totalRevenue = ordersRevenue + ebooksRevenue;
+  const completedOrders = orders.filter(o => o.status === 'confirmed' || o.status === 'completed' || o.status === 'delivered');
   
   const lowStockProducts = products.filter(p => p.stock < 10);
   const outOfStockProducts = products.filter(p => p.stock === 0);
@@ -85,8 +98,8 @@ export function ReportsTab({ products, orders, users, transactions, transfers }:
             <div className="flex items-center gap-2">
               <TrendingUp className="h-8 w-8 text-primary" />
               <div>
-                <p className="text-sm text-muted-foreground">Total Transactions</p>
-                <p className="text-2xl font-bold">{completedTransactions.length}</p>
+                <p className="text-sm text-muted-foreground">Ebook Sales</p>
+                <p className="text-2xl font-bold">{userEbooks.length}</p>
               </div>
             </div>
           </CardContent>
@@ -95,8 +108,8 @@ export function ReportsTab({ products, orders, users, transactions, transfers }:
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Transactions</CardTitle>
-          <Button variant="outline" size="sm" onClick={() => exportCSV(completedTransactions, 'sales_report')}>
+          <CardTitle>Recent Orders</CardTitle>
+          <Button variant="outline" size="sm" onClick={() => exportCSV(completedOrders, 'sales_report')}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
@@ -112,12 +125,12 @@ export function ReportsTab({ products, orders, users, transactions, transfers }:
               </TableRow>
             </TableHeader>
             <TableBody>
-              {completedTransactions.slice(0, 10).map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{new Date(t.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell className="font-mono text-xs">{t.order_id.slice(0, 8)}...</TableCell>
-                  <TableCell>${t.amount.toFixed(2)}</TableCell>
-                  <TableCell>{t.status}</TableCell>
+              {completedOrders.slice(0, 10).map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}...</TableCell>
+                  <TableCell>${o.total.toFixed(2)}</TableCell>
+                  <TableCell>{o.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
