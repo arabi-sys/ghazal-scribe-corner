@@ -56,20 +56,21 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
 
     setSubmitting(true);
     try {
-      if (userReview) {
-        const { error } = await supabase
-          .from('reviews')
-          .update({ rating, comment, updated_at: new Date().toISOString() })
-          .eq('id', userReview.id);
-        if (error) throw error;
-        toast.success('Review updated');
-      } else {
-        const { error } = await supabase
-          .from('reviews')
-          .insert({ product_id: productId, user_id: user.id, rating, comment });
-        if (error) throw error;
-        toast.success('Review submitted');
-      }
+      const { error } = await supabase
+        .from('reviews')
+        .upsert(
+          { 
+            product_id: productId, 
+            user_id: user.id, 
+            rating, 
+            comment,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id,product_id' }
+        );
+      
+      if (error) throw error;
+      toast.success(userReview ? 'Review updated' : 'Review submitted');
       fetchReviews();
     } catch (error: any) {
       toast.error(error.message || 'Failed to submit review');
