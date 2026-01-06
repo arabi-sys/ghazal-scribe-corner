@@ -7,17 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Review } from '@/lib/types';
 import { toast } from 'sonner';
-import { Star, Loader2 } from 'lucide-react';
+import { Star, Loader2, Trash2 } from 'lucide-react';
 
 interface ProductReviewsProps {
   productId: string;
 }
 
 export function ProductReviews({ productId }: ProductReviewsProps) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [userReview, setUserReview] = useState<Review | null>(null);
@@ -77,7 +78,27 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
     }
   };
 
-  const avgRating = reviews.length > 0 
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!isAdmin) return;
+    
+    setDeleting(reviewId);
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId);
+      
+      if (error) throw error;
+      toast.success('Review deleted');
+      fetchReviews();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete review');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const avgRating = reviews.length > 0
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
     : 0;
 
@@ -166,9 +187,26 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                         </p>
                         <StarRating value={review.rating} readonly />
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteReview(review.id)}
+                            disabled={deleting === review.id}
+                          >
+                            {deleting === review.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     {review.comment && (
                       <p className="text-muted-foreground">{review.comment}</p>
