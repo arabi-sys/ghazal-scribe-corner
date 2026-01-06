@@ -288,7 +288,8 @@ export default function Admin() {
               orders={orders} 
               users={users} 
               transactions={transactions} 
-              transfers={transfers} 
+              transfers={transfers}
+              userEbooks={userEbooks}
             />
           </TabsContent>
         </Tabs>

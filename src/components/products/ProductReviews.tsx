@@ -28,22 +28,39 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
   }, [productId]);
 
   const fetchReviews = async () => {
-    const { data } = await supabase
+    // First fetch reviews
+    const { data: reviewsData } = await supabase
       .from('reviews')
-      .select('*, profiles(full_name, email)')
+      .select('*')
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
     
-    if (data) {
-      setReviews(data as any);
+    if (reviewsData && reviewsData.length > 0) {
+      // Fetch profiles for review authors
+      const userIds = reviewsData.map(r => r.user_id);
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+      
+      // Combine reviews with profile data
+      const reviewsWithProfiles = reviewsData.map(review => ({
+        ...review,
+        profiles: profilesData?.find(p => p.user_id === review.user_id) || null
+      }));
+      
+      setReviews(reviewsWithProfiles as any);
+      
       if (user) {
-        const existing = data.find(r => r.user_id === user.id);
+        const existing = reviewsWithProfiles.find(r => r.user_id === user.id);
         if (existing) {
           setUserReview(existing as any);
           setRating(existing.rating);
           setComment(existing.comment || '');
         }
       }
+    } else {
+      setReviews([]);
     }
     setLoading(false);
   };
