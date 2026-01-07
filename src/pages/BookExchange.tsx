@@ -12,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Upload, Repeat, ShoppingCart, Loader2, History } from 'lucide-react';
+import { BookOpen, Upload, Repeat, ShoppingCart, Loader2, History, Inbox, Check, X } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ImageUpload } from '@/components/admin/ImageUpload';
-import { notifyAdmins, useNotifications } from '@/hooks/useNotifications';
+import { notifyAdmins, useNotifications, createNotification } from '@/hooks/useNotifications';
 import { NotificationBadge } from '@/components/notifications/NotificationBadge';
 
 type User = {
@@ -39,6 +39,7 @@ interface ExchangeBook {
 interface ExchangeTransaction {
   id: string;
   book_id: string;
+  user_id: string;
   transaction_type: string;
   status: string;
   loan_due_date?: string;
@@ -57,10 +58,12 @@ export default function BookExchange() {
   const [availableBooks, setAvailableBooks] = useState<ExchangeBook[]>([]);
   const [myDeposits, setMyDeposits] = useState<ExchangeBook[]>([]);
   const [myTransactions, setMyTransactions] = useState<ExchangeTransaction[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<ExchangeTransaction[]>([]);
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [hasOverdueBooks, setHasOverdueBooks] = useState(false);
   const [exchangeDialogBook, setExchangeDialogBook] = useState<ExchangeBook | null>(null);
   const [selectedOfferBook, setSelectedOfferBook] = useState<string>('');
+  const [processingRequest, setProcessingRequest] = useState<string | null>(null);
 
   const [depositForm, setDepositForm] = useState({
     title: '',
@@ -91,7 +94,37 @@ export default function BookExchange() {
       ]);
 
       if (booksRes.data) setAvailableBooks(booksRes.data);
-      if (depositsRes.data) setMyDeposits(depositsRes.data);
+      if (depositsRes.data) {
+        setMyDeposits(depositsRes.data);
+        // Fetch incoming exchange requests for user's deposited books
+        const depositIds = depositsRes.data.map(d => d.id);
+        if (depositIds.length > 0) {
+          const { data: incomingRes } = await supabase
+            .from('exchange_transactions')
+            .select('*, exchange_books!exchange_transactions_book_id_fkey(*)')
+            .in('book_id', depositIds)
+            .eq('transaction_type', 'exchange')
+            .eq('status', 'pending_approval')
+            .neq('user_id', user?.id);
+          
+          // Fetch offered book details for each request
+          if (incomingRes && incomingRes.length > 0) {
+            const offeredBookIds = incomingRes.map(r => r.offered_book_id).filter(Boolean);
+            const { data: offeredBooks } = await supabase
+              .from('exchange_books')
+              .select('*')
+              .in('id', offeredBookIds);
+            
+            const requestsWithOfferedBooks = incomingRes.map(req => ({
+              ...req,
+              offered_book: offeredBooks?.find(b => b.id === req.offered_book_id)
+            }));
+            setIncomingRequests(requestsWithOfferedBooks);
+          } else {
+            setIncomingRequests([]);
+          }
+        }
+      }
       if (transactionsRes.data) setMyTransactions(transactionsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -195,6 +228,81 @@ export default function BookExchange() {
     } catch (error) {
       console.error('Error requesting book:', error);
       toast({ title: 'Error submitting request', variant: 'destructive' });
+    }
+  };
+
+  const handleApproveExchange = async (transaction: ExchangeTransaction) => {
+    if (!user) return;
+    setProcessingRequest(transaction.id);
+
+    try {
+      // Update transaction status to active
+      const { error: transactionError } = await supabase
+        .from('exchange_transactions')
+        .update({
+          status: 'active',
+          loan_due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+        })
+        .eq('id', transaction.id);
+
+      if (transactionError) throw transactionError;
+
+      // Update both books' status to 'on_loan'
+      const { error: bookError } = await supabase
+        .from('exchange_books')
+        .update({ status: 'on_loan' })
+        .in('id', [transaction.book_id, transaction.offered_book_id].filter(Boolean));
+
+      if (bookError) throw bookError;
+
+      // Notify the requester
+      await createNotification(
+        transaction.user_id,
+        'exchange_approved',
+        'Exchange Request Approved',
+        `Your exchange request for "${transaction.exchange_books.title}" has been approved!`,
+        transaction.id
+      );
+
+      toast({ title: 'Exchange approved!' });
+      fetchData();
+    } catch (error) {
+      console.error('Error approving exchange:', error);
+      toast({ title: 'Error approving exchange', variant: 'destructive' });
+    } finally {
+      setProcessingRequest(null);
+    }
+  };
+
+  const handleRejectExchange = async (transaction: ExchangeTransaction) => {
+    if (!user) return;
+    setProcessingRequest(transaction.id);
+
+    try {
+      // Update transaction status to rejected
+      const { error } = await supabase
+        .from('exchange_transactions')
+        .update({ status: 'rejected' })
+        .eq('id', transaction.id);
+
+      if (error) throw error;
+
+      // Notify the requester
+      await createNotification(
+        transaction.user_id,
+        'exchange_rejected',
+        'Exchange Request Rejected',
+        `Your exchange request for "${transaction.exchange_books.title}" has been rejected.`,
+        transaction.id
+      );
+
+      toast({ title: 'Exchange rejected' });
+      fetchData();
+    } catch (error) {
+      console.error('Error rejecting exchange:', error);
+      toast({ title: 'Error rejecting exchange', variant: 'destructive' });
+    } finally {
+      setProcessingRequest(null);
     }
   };
 
@@ -333,6 +441,15 @@ export default function BookExchange() {
       }} className="space-y-4">
         <TabsList>
           <TabsTrigger value="available">Available Books</TabsTrigger>
+          <TabsTrigger value="incoming-requests" className="relative">
+            <Inbox className="h-4 w-4 mr-2" />
+            Incoming Requests
+            {incomingRequests.length > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                {incomingRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="my-deposits" className="relative">
             My Deposits
             <NotificationBadge count={getUnreadByTypes(['deposit_approved', 'deposit_rejected'])} className="ml-2" />
@@ -467,6 +584,115 @@ export default function BookExchange() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        <TabsContent value="incoming-requests" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Inbox className="h-5 w-5" />
+                Pending Exchange Requests
+              </CardTitle>
+              <CardDescription>
+                Review and approve/reject exchange requests from other users for your deposited books
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {incomingRequests.length > 0 ? (
+                <div className="space-y-4">
+                  {incomingRequests.map((request) => (
+                    <div key={request.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {/* Their requested book (your book) */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">They want your book:</p>
+                          <div className="flex gap-3">
+                            {request.exchange_books.image_url && (
+                              <img
+                                src={request.exchange_books.image_url}
+                                alt={request.exchange_books.title}
+                                className="w-16 h-24 object-cover rounded"
+                              />
+                            )}
+                            <div>
+                              <p className="font-semibold">{request.exchange_books.title}</p>
+                              <p className="text-sm text-muted-foreground">{request.exchange_books.author}</p>
+                              <Badge variant="secondary" className="mt-1">{request.exchange_books.condition}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Their offered book */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">They're offering:</p>
+                          {request.offered_book ? (
+                            <div className="flex gap-3">
+                              {request.offered_book.image_url && (
+                                <img
+                                  src={request.offered_book.image_url}
+                                  alt={request.offered_book.title}
+                                  className="w-16 h-24 object-cover rounded"
+                                />
+                              )}
+                              <div>
+                                <p className="font-semibold">{request.offered_book.title}</p>
+                                <p className="text-sm text-muted-foreground">{request.offered_book.author}</p>
+                                <Badge variant="secondary" className="mt-1">{request.offered_book.condition}</Badge>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground">No book info available</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Requested on {new Date(request.created_at).toLocaleDateString()}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectExchange(request)}
+                            disabled={processingRequest === request.id}
+                          >
+                            {processingRequest === request.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <X className="h-4 w-4 mr-1" />
+                                Reject
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveExchange(request)}
+                            disabled={processingRequest === request.id}
+                          >
+                            {processingRequest === request.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Approve
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Inbox className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No pending exchange requests for your books.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="my-deposits">
