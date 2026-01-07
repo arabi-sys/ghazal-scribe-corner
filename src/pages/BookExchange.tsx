@@ -12,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Upload, Repeat, ShoppingCart, Loader2, History, Inbox, Check, X } from 'lucide-react';
+import { BookOpen, Upload, Repeat, ShoppingCart, Loader2, History, Inbox, Check, X, MessageCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { notifyAdmins, useNotifications, createNotification } from '@/hooks/useNotifications';
 import { NotificationBadge } from '@/components/notifications/NotificationBadge';
+import { ExchangeChat } from '@/components/exchange/ExchangeChat';
 
 type User = {
   id: string;
@@ -64,6 +65,7 @@ export default function BookExchange() {
   const [exchangeDialogBook, setExchangeDialogBook] = useState<ExchangeBook | null>(null);
   const [selectedOfferBook, setSelectedOfferBook] = useState<string>('');
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
+  const [chatTransaction, setChatTransaction] = useState<{ id: string; otherUserId: string } | null>(null);
 
   const [depositForm, setDepositForm] = useState({
     title: '',
@@ -654,6 +656,14 @@ export default function BookExchange() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setChatTransaction({ id: request.id, otherUserId: request.user_id })}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            Chat
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleRejectExchange(request)}
                             disabled={processingRequest === request.id}
                           >
@@ -682,6 +692,17 @@ export default function BookExchange() {
                           </Button>
                         </div>
                       </div>
+                      
+                      {/* Chat Panel */}
+                      {chatTransaction?.id === request.id && (
+                        <div className="mt-4">
+                          <ExchangeChat
+                            transactionId={request.id}
+                            otherUserId={request.user_id}
+                            onClose={() => setChatTransaction(null)}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -790,6 +811,28 @@ export default function BookExchange() {
                     )}
                   </div>
                 </CardContent>
+                {transaction.transaction_type === 'exchange' && transaction.status === 'pending_approval' && (
+                  <CardFooter className="flex flex-col gap-3">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setChatTransaction({ 
+                        id: transaction.id, 
+                        otherUserId: transaction.exchange_books.depositor_id 
+                      })}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Chat with Owner
+                    </Button>
+                    {chatTransaction?.id === transaction.id && (
+                      <ExchangeChat
+                        transactionId={transaction.id}
+                        otherUserId={transaction.exchange_books.depositor_id}
+                        onClose={() => setChatTransaction(null)}
+                      />
+                    )}
+                  </CardFooter>
+                )}
               </Card>
             ))}
           </div>
