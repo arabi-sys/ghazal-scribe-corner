@@ -208,6 +208,38 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "exchange_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_transactions: {
         Row: {
           book_id: string
